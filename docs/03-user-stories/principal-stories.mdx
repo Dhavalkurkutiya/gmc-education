@@ -1,0 +1,141 @@
+# Principal User Stories
+
+**Version:** 1.0
+**Last Updated:** May 2026
+**Total Stories:** 10
+
+---
+
+## Key Context
+
+Principals need oversight, not detail. They do not mark attendance or grade papers — they need to know when something is wrong and act on it. Their screens should be dashboards and reports, not data entry forms. If a principal has to dig through 5 screens to find one number, the portal has failed them.
+
+---
+
+## Dashboard & Overview
+
+---
+
+**PR-001**
+| Field | Detail |
+|---|---|
+| As a | Principal |
+| I want to | See today's attendance summary for the entire school on one screen |
+| So that | I know immediately if any class has unusually low attendance |
+| Priority | Critical |
+| Acceptance | Dashboard shows each class with today's attendance %. Classes below 75% highlighted in amber. Below 60% in red. Updates in real time as teachers submit. |
+
+---
+
+**PR-002**
+| Field | Detail |
+|---|---|
+| As a | Principal |
+| I want to | See which teachers have not yet submitted attendance today |
+| So that | I can follow up with them before the school day ends |
+| Priority | High |
+| Acceptance | List of teachers with submission status — submitted or pending — for today. Updates live. Shows time of last submission. |
+
+---
+
+**PR-003**
+| Field | Detail |
+|---|---|
+| As a | Principal |
+| I want to | See a list of students with critically low attendance this month |
+| So that | I can take action before it becomes an academic or legal issue |
+| Priority | High |
+| Acceptance | List of students below 65% monthly attendance. Shows name, class, percentage, and number of days absent. Exportable as PDF. |
+
+---
+
+## Approvals
+
+---
+
+**PR-004**
+| Field | Detail |
+|---|---|
+| As a | Principal |
+| I want to | Approve or reject a teacher's request to edit attendance after 24 hours |
+| So that | Changes to official records go through proper authorization |
+| Priority | High |
+| Acceptance | Approval request shows original entry, proposed change, and teacher's reason. One tap approve or reject. Decision logged with timestamp. Teacher notified of outcome. |
+
+---
+
+**PR-005**
+| Field | Detail |
+|---|---|
+| As a | Principal |
+| I want to | Approve or reject a teacher's request to edit published marks |
+| So that | Student records cannot be changed without accountability |
+| Priority | High |
+| Acceptance | Same approval flow as attendance edits. All mark changes logged permanently and visible in audit trail. |
+
+---
+
+## Reports
+
+---
+
+**PR-006**
+| Field | Detail |
+|---|---|
+| As a | Principal |
+| I want to | Generate a monthly attendance report for the entire school |
+| So that | I can submit it to GMC without manual compilation |
+| Priority | Critical |
+| Acceptance | Report generated in one tap. Covers all classes, all subjects, all students for selected month. Exportable as PDF. Format matches GMC submission requirements. |
+
+---
+
+**PR-007**
+| Field | Detail |
+|---|---|
+| As a | Principal |
+| I want to | See subject-wise exam performance for each class |
+| So that | I can identify which subjects or teachers need support |
+| Priority | High |
+| Acceptance | Table showing class average per subject per exam. Highlights subjects where class average is below 50%. Drilldown to individual student marks available. |
+
+---
+
+**PR-008**
+| Field | Detail |
+|---|---|
+| As a | Principal |
+| I want to | See a report of portal usage by teachers |
+| So that | I know which teachers are actively using the system and which are not |
+| Priority | Medium |
+| Acceptance | Report shows each teacher with last login date, number of materials uploaded, attendance submissions this month, and assignments created. |
+
+---
+
+## Announcements
+
+---
+
+**PR-009**
+| Field | Detail |
+|---|---|
+| As a | Principal |
+| I want to | Post a school announcement visible to all students, parents, and teachers |
+| So that | I have one official channel for school-wide communication |
+| Priority | High |
+| Acceptance | Announcement composer with title and body. Option to also send as SMS to parents. Published immediately. Visible on all user home screens. |
+
+---
+
+**PR-010**
+| Field | Detail |
+|---|---|
+| As a | Principal |
+| I want to | Mark a day as a school holiday on the portal |
+| So that | Timetables and attendance are automatically adjusted |
+| Priority | Medium |
+| Acceptance | Holiday marked on school calendar. No attendance submission required from teachers on that day. Students and parents notified via push and SMS. |
+
+---
+
+_Principal screens must work well on both desktop browser and Android phone. Reports must be exportable as PDF in one tap — no manual formatting required._

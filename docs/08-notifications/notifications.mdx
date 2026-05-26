@@ -1,0 +1,230 @@
+# Notifications Strategy — GMC Education Portal
+
+**Document ID:** NOTIF-08  
+**Last Updated:** 2026 
+**Owner:** Backend Dev + Product Manager  
+**Critical Dependency:** SMS Gateway (primary), Firebase FCM (secondary)
+
+---
+
+## 1. Notification Channels
+
+### Channel Priority Order
+
+```
+1. SMS (Primary)      — works on any phone, no app needed, no internet needed
+2. App Push (Secondary) — only if app installed and internet available  
+3. In-App (Tertiary)  — seen next time user opens app
+```
+
+### Why SMS Is Primary
+
+Parents in this user base:
+- May not have the app installed
+- May not have mobile internet active
+- Will always have SMS capability on any phone
+
+Never rely solely on push notifications for critical alerts. A child's absence notification that parent never receives is a product failure.
+
+---
+
+## 2. Notification Event Catalog
+
+### Parent Notifications
+
+| Event | Channel | When Triggered | Priority |
+|---|---|---|---|
+| Child marked absent | SMS + Push | Same day by 10 AM | P0 |
+| Exam result published | SMS + Push | Immediately on publish | P0 |
+| Attendance below 75% | SMS + Push | Weekly on Monday | P0 |
+| New assignment posted | Push + In-App | Immediately | P1 |
+| Assignment deadline tomorrow | Push + In-App | Day before at 6 PM | P1 |
+| New marks entered | Push + In-App | Immediately | P1 |
+| School holiday announced | SMS + Push | Immediately | P1 |
+| Parent-teacher meeting scheduled | SMS + Push | 3 days before | P1 |
+| Child's fee reminder (if applicable) | SMS | Monthly | P2 |
+
+### Student Notifications
+
+| Event | Channel | When Triggered | Priority |
+|---|---|---|---|
+| New assignment posted | Push + In-App | Immediately | P0 |
+| Assignment deadline reminder | Push + In-App | 24h before and 1h before | P0 |
+| New study material uploaded | Push + In-App | Immediately | P1 |
+| Marks published | Push + In-App | Immediately | P1 |
+| Timetable updated | Push + In-App | Immediately | P1 |
+| School announcement | Push + In-App | Immediately | P1 |
+
+### Teacher Notifications
+
+| Event | Channel | When Triggered | Priority |
+|---|---|---|---|
+| Assignment submission received | In-App | Immediately | P1 |
+| All students submitted (class complete) | Push + In-App | Immediately | P1 |
+| Grading deadline approaching | Push + In-App | 24h before | P1 |
+| Principal approved material upload | In-App | Immediately | P2 |
+| Principal rejected material upload | Push + In-App | Immediately | P1 |
+
+### Principal Notifications
+
+| Event | Channel | When Triggered | Priority |
+|---|---|---|---|
+| Teacher not submitted attendance by 10 AM | Push + In-App | Daily 10:05 AM | P0 |
+| Student attendance below threshold (10+ students) | Push + In-App | Daily | P0 |
+| New teacher registered (needs approval) | Push + In-App | Immediately | P1 |
+| GMC Admin sent school announcement | SMS + Push | Immediately | P1 |
+| Monthly report ready | In-App | 1st of every month | P2 |
+
+### GMC Admin Notifications
+
+| Event | Channel | When Triggered | Priority |
+|---|---|---|---|
+| School not uploaded attendance for 3 days | Push + In-App | Daily check | P0 |
+| System error detected | Email + Push | Immediately | P0 |
+| New school onboarding complete | In-App | Immediately | P2 |
+| Monthly portal usage report | Email | 1st of every month | P2 |
+
+---
+
+## 3. SMS Specification
+
+### SMS Template Design Rules
+
+- Maximum 160 characters per SMS (one segment — avoid multi-part SMS cost)
+- No personal identifiers in SMS body (name only, no roll number, school address, etc.)
+- All SMS end with portal URL for full details
+- Gujarati SMS available for users who set language preference to Gujarati
+
+### Approved SMS Templates
+
+**Absence Alert:**
+```
+Dear Parent, your ward was ABSENT today at [School Name]. 
+Login for details: gmc.edu.in/portal
+```
+
+**Marks Published:**
+```
+Dear Parent, [Student First Name]'s exam results are now available.
+Login to view: gmc.edu.in/portal
+```
+
+**Attendance Warning:**
+```
+Dear Parent, your ward's attendance is below 75%. 
+Immediate attention needed. View: gmc.edu.in/portal
+```
+
+**Assignment Deadline:**
+```
+Reminder: Assignment due tomorrow for [Subject]. 
+Submit at: gmc.edu.in/portal
+```
+
+**School Holiday:**
+```
+[School Name]: Holiday declared on [Date] - [Reason]. 
+School resumes [Next Date]. Details: gmc.edu.in/portal
+```
+
+---
+
+## 4. Notification Delivery Infrastructure
+
+### SMS Gateway Setup
+
+```
+Primary:   Preferred vendor (Textlocal, MSG91, or Kaleyra — government-approved)
+Fallback:  Second vendor on standby
+Trigger:   Primary fails 3 consecutive sends → auto-switch to fallback
+```
+
+### Retry Logic
+
+```
+Attempt 1: Immediately on trigger
+Attempt 2: 30 minutes after failure
+Attempt 3: 2 hours after failure
+After 3 failures: Mark as FAILED, log, alert admin dashboard
+```
+
+### DND (Do Not Disturb) Handling
+
+TRAI DND registry blocks promotional SMS. Education alerts are transactional — must use transactional SMS route, not promotional.
+
+- Register with DCI (Distributed Content Identifier) approved for education
+- Use transactional SMS header (6-character entity header like GMCEDU)
+- Delivery reports fetched from gateway — logged per message
+
+---
+
+## 5. Notification Preferences
+
+### What Users Can Control
+
+| Setting | Parent | Student | Teacher |
+|---|---|---|---|
+| SMS on/off per category | ✅ | ❌ (no SMS) | ❌ (no SMS) |
+| Push on/off per category | ✅ | ✅ | ✅ |
+| Quiet hours (no push 10 PM–7 AM) | ✅ | ✅ | ✅ |
+| Language (Gujarati/English) | ✅ | ✅ | ✅ |
+
+### What Users Cannot Disable
+
+- Absence SMS to parent — mandatory, cannot be turned off
+- Attendance below 75% SMS to parent — mandatory
+- Assignment submission deadline reminders to student — mandatory
+
+These are welfare notifications. Disabling them defeats the purpose of the platform.
+
+---
+
+## 6. Notification Delivery Tracking
+
+### Per-Notification Record
+
+Every notification stored in database:
+
+```
+id              : UUID
+user_id         : recipient
+event_type      : CHILD_ABSENT | MARKS_PUBLISHED | etc.
+channel         : SMS | PUSH | IN_APP
+status          : PENDING | SENT | DELIVERED | FAILED | OPTED_OUT
+sent_at         : timestamp
+delivered_at    : timestamp (from gateway delivery report)
+error_message   : if failed
+retry_count     : integer
+```
+
+### Dashboard Visibility
+
+Principal dashboard shows daily:
+- Absence alerts: 120 sent, 118 delivered, 2 failed
+- Failed deliveries show parent phone numbers (for manual follow-up)
+
+GMC Admin dashboard shows:
+- System-wide delivery rate per school per day
+- Alert if any school's delivery rate drops below 90%
+
+---
+
+## 7. Edge Cases in Notifications
+
+**Parent has wrong phone number registered:**
+SMS delivered but to wrong person. Resolution: Teacher verifies parent contact annually. Portal shows warning if phone not verified in 6 months.
+
+**Student phone stolen — assignment deadlines missed:**
+Student cannot claim they "didn't get notifications" due to stolen phone. System shows notification history. Policy decision by Principal.
+
+**SMS sent at 2 AM due to timezone bug:**
+Enforced quiet hours at SMS gateway level — no SMS sent between 9 PM and 7 AM IST, regardless of server trigger time.
+
+**Parent receives 15 notifications in one day (multiple children, multiple events):**
+Notification batching: Group similar events — "3 new assignments for your children. View all: [link]" instead of 3 separate SMS.
+
+**School announces holiday at 11 PM:**
+Push notification sent immediately. SMS held until 7 AM next morning (quiet hours). In-app banner visible immediately for active users.
+
+**Notification service down for 2 hours:**
+Notifications queued — not lost. When service restores, queued notifications sent. If event is older than 24 hours and low priority — discard. If P0 event — always send regardless of delay.

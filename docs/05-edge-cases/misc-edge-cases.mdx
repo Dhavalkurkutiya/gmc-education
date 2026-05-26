@@ -1,0 +1,313 @@
+# Business Logic, Concurrency, Device, Time, Failure & Scale Edge Cases
+
+**Document ID:** EC-05-MISC  
+**Category:** Mixed — Business Logic / Concurrency / Device / Time / Failure / Scale  
+**Last Updated:** 2026  
+**Owner:** Tech Lead + QA + Backend Dev
+
+---
+
+# ⏰ TIME & DEADLINE EDGE CASES
+
+## EC-TIME-001: Assignment Deadline on School Holiday
+
+**Scenario:** Teacher sets assignment deadline for 15th August (Independence Day). System accepts it. Students offline on holiday.
+
+**What breaks if ignored:** Students penalized for missing deadline on government holiday. Parents complain to Principal.
+
+**Recommended Fix:**
+- Holiday calendar integrated with deadline picker
+- Warning shown: "This date is a public holiday. Confirm deadline?"
+- System-wide school holiday calendar maintained by Principal, visible to all.
+
+---
+
+## EC-TIME-002: Attendance Marked for Future Date
+
+**Scenario:** Teacher accidentally marks attendance for tomorrow's date.
+
+**What breaks if ignored:** Future attendance record exists. Reports show students attended class that hasn't happened. Data integrity broken.
+
+**Recommended Fix:**
+- Attendance date cannot be in the future — server-side validation
+- Backdating allowed only up to 3 days, requires reason entry
+- Any backdated entry flagged in audit log
+
+---
+
+## EC-TIME-003: Year-End Data Archival Not Completed Before New Year Starts
+
+**Scenario:** Academic year 2024-25 ends May 31. New year 2026-26 starts June 1. Archival job didn't run. Old and new data mixed.
+
+**What breaks if ignored:** Teachers see both years' students in same class list. Marks from previous year affect current year calculations. Chaos.
+
+**Recommended Fix:**
+- Year-end archival is manual trigger by GMC Admin — not automatic
+- Hard cutoff: Principal confirms "Year End" before new year can begin
+- System prevents new year activities until archival confirmed complete
+- Test archival job on staging before every year-end
+
+---
+
+## EC-TIME-004: Exam Schedule Conflict — Two Exams Same Time Same Class
+
+**Scenario:** Two subject teachers both schedule exams for Class 9 on same date and time.
+
+**What breaks if ignored:** Students see two conflicting exams. Cannot attend both. One teacher's effort wasted. Students stressed.
+
+**Recommended Fix:**
+- Exam scheduler validates: no two exams for same class at overlapping times
+- Principal approval required for all exam schedules
+- Conflict shown immediately: "Class 9B already has Maths exam at this time."
+
+---
+
+# 🔄 CONCURRENCY & RACE CONDITIONS
+
+## EC-CONC-001: Two Teachers Mark Attendance for Same Class Simultaneously
+
+**Scenario:** Class Teacher and Subject Teacher both open Class 7A attendance at 9:00 AM. Both submit at 9:01 AM.
+
+**What breaks if ignored:** One submission overwrites the other. Only one teacher's version saved. Other teacher sees no error — thinks their submission succeeded.
+
+**Recommended Fix:**
+- Attendance record has one owner per class per day — class teacher
+- Subject teacher attendance is separate from class teacher attendance
+- Optimistic lock: first submission wins, second gets "already submitted — view existing."
+
+---
+
+## EC-CONC-002: Student Submits Assignment While Teacher Is Grading It
+
+**Scenario:** Teacher opens assignment submission for grading. At same time, student resubmits (revised version). Teacher grades old version.
+
+**What breaks if ignored:** Teacher grades a version the student replaced. Grade applied to wrong version. Student disputes grade.
+
+**Recommended Fix:**
+- Assignment locked for editing once teacher opens it for grading
+- Student shown: "Your submission is currently being reviewed. Resubmission locked."
+- After grading complete: resubmission allowed only if teacher explicitly unlocks
+
+---
+
+## EC-CONC-003: GMC Admin Imports Students While School is Mid-Session
+
+**Scenario:** Admin bulk imports 50 new students at 10:30 AM while teachers are taking attendance.
+
+**What breaks if ignored:** New students not in attendance list. Marked absent by default. First day attendance wrong. Parents get wrong alerts.
+
+**Recommended Fix:**
+- Bulk import takes effect from next school day, not immediately
+- Principal notified: "50 new students will appear from tomorrow."
+- Imported students excluded from today's attendance automatically
+
+---
+
+# 📱 DEVICE & PLATFORM EDGE CASES
+
+## EC-DEV-001: App Installed on Android 7 (Old OS)
+
+**Scenario:** Student's phone runs Android 7.0 (2016). App built targeting Android 12+. App crashes on launch.
+
+**What breaks if ignored:** All students with old phones cannot use the app. In government school demographics, this could be 40%+ of students.
+
+**Recommended Fix:**
+- Minimum supported Android version: Android 6.0 (API 23)
+- Test on real low-end devices: Redmi 9A, Samsung Galaxy A03s
+- APK size must be under 15MB for easy install on low storage phones
+- Progressive Web App (PWA) as fallback for very old devices
+
+---
+
+## EC-DEV-002: Font Rendering — Gujarati Text Broken
+
+**Scenario:** App uses system font. Low-end phone's system font doesn't support Gujarati script. Gujarati text shows as boxes or question marks.
+
+**What breaks if ignored:** Semi-literate users who depend on Gujarati cannot read anything. App unusable for its core audience.
+
+**Recommended Fix:**
+- Bundle Noto Sans Gujarati font within the app
+- Never rely on system font for Gujarati rendering
+- Test Gujarati rendering on Redmi, Samsung budget phones specifically
+
+---
+
+## EC-DEV-003: Screen Size Too Small — UI Broken on 4-inch Phones
+
+**Scenario:** Some students use very old 4-inch phones. App designed for 5.5-inch screens. Buttons cut off. Text overflows.
+
+**What breaks if ignored:** Critical buttons (Submit, Login) not visible. User cannot complete actions. Frustration and abandonment.
+
+**Recommended Fix:**
+- Responsive UI with minimum target: 360dp screen width
+- No hardcoded pixel dimensions — use dp units throughout
+- Test on smallest common screen sizes in Indian market
+
+---
+
+## EC-DEV-004: Phone Call During Video Playback
+
+**Scenario:** Student watching recorded lecture. Phone call comes in. Student attends call. Returns to app — video reset to beginning.
+
+**What breaks if ignored:** Student loses progress on long lecture. Has to rewatch. Frustrating experience.
+
+**Recommended Fix:**
+- Save video playback position every 10 seconds to local storage
+- Resume from last position on reopen
+- "Resume from X:XX?" prompt on video open
+
+---
+
+# 🏫 BUSINESS LOGIC EDGE CASES
+
+## EC-BIZ-001: Student Attendance Below Threshold — No Alert Sent
+
+**Scenario:** Student attendance drops to 68% (below 75% minimum). System has alert configured but alert service was down that week. Alert never sent.
+
+**What breaks if ignored:** Parent and Principal unaware. Student continues missing school. Reaches exam without eligibility. Too late to correct.
+
+**Recommended Fix:**
+- Attendance threshold alert checked daily — not just when attendance is marked
+- If alert failed: retry up to 3 times over 24 hours
+- Principal dashboard shows: "12 students below 75% attendance this month" — visible always, regardless of alert delivery
+
+---
+
+## EC-BIZ-002: Subject Deleted That Has Existing Assignments and Marks
+
+**Scenario:** Principal deletes a subject mid-year (e.g., renames it). All assignments, marks, and materials linked to that subject ID become orphaned.
+
+**What breaks if ignored:** Orphaned records. Student progress report missing subject. Grade calculation incomplete.
+
+**Recommended Fix:**
+- Subject cannot be deleted if it has active assignments or marks
+- Only archivable — archived subject's data retained, just not shown in active views
+- Rename allowed any time — data follows renamed subject
+
+---
+
+## EC-BIZ-003: Parent Linked to Transferred Student
+
+**Scenario:** Student transfers from School A to School B mid-year. Parent account still linked to School A.
+
+**What breaks if ignored:** Parent sees School A data. Gets alerts from School A. New school (B) parents don't get alerts. Child's progress invisible to parent.
+
+**Recommended Fix:**
+- Student transfer triggers automatic parent re-linking to new school
+- Parent shown: "Your child has transferred to [New School]. Your account has been updated."
+- 7-day grace period where parent can see both schools' data
+
+---
+
+## EC-BIZ-004: All Teachers of a Subject Resigned — No Coverage
+
+**Scenario:** Only Maths teacher in School leaves. Principal hasn't assigned replacement. Class 8 has no Maths teacher in system.
+
+**What breaks if ignored:** Maths assignments, attendance for Maths periods, and materials — all blocked. Students see "No teacher assigned."
+
+**Recommended Fix:**
+- Dashboard alert to Principal when a class-subject has no teacher assigned
+- Temporary assignment: Principal can assign any teacher as temporary until replacement confirmed
+- No service interruption — assignments and materials remain accessible even without teacher
+
+---
+
+# 💥 FAILURE & RECOVERY EDGE CASES
+
+## EC-FAIL-001: Database Server Crash — No Backups Configured
+
+**Scenario:** Production DB crashes. Backups were not configured properly. Last valid backup is 2 weeks old.
+
+**What breaks if ignored:** 2 weeks of attendance, marks, submissions permanently lost. GMC in crisis. Legal liability.
+
+**Recommended Fix:**
+- Automated daily backups to separate server/cloud bucket
+- Point-in-time recovery enabled (PostgreSQL WAL / MySQL binlog)
+- Backup restoration test done every quarter — untested backups don't exist
+- RPO target: max 1 hour data loss. RTO target: back online within 4 hours.
+
+---
+
+## EC-FAIL-002: SMS Gateway Provider Goes Bankrupt / Shuts Down
+
+**Scenario:** Primary SMS vendor shuts down. All parent notifications stop. No fallback configured.
+
+**What breaks if ignored:** Zero parent communication. Critical absence alerts, result notifications all fail silently.
+
+**Recommended Fix:**
+- Two SMS gateway providers integrated — primary and fallback
+- Auto-failover: if primary fails 3 consecutive sends, switch to secondary
+- SMS delivery monitoring dashboard — alert if delivery rate drops below 90%
+
+---
+
+## EC-FAIL-003: App Update Pushed — Old App Stops Working
+
+**Scenario:** New app version deployed with breaking API changes. Students with old app version get cryptic errors.
+
+**What breaks if ignored:** Students mid-exam, mid-submission suddenly hit errors. Panic. Trust broken.
+
+**Recommended Fix:**
+- API versioning: `/api/v1/` and `/api/v2/` — old versions supported for minimum 6 months
+- Force update only for critical security patches — with 7-day warning otherwise
+- In-app update banner: "New version available. Update for best experience."
+- Never force-update during exam season
+
+---
+
+# 📊 SCALE & PERFORMANCE EDGE CASES
+
+## EC-SCALE-001: Exam Results Day — Simultaneous Traffic Spike
+
+**Scenario:** Annual exam results uploaded at 10 AM. 50,000 students and parents try to access results simultaneously.
+
+**What breaks if ignored:** Server crashes. Everyone sees error. Students and parents in panic. News coverage. GMC embarrassed.
+
+**Recommended Fix:**
+- Load test at 2× expected peak before every result publish
+- Results cached — not re-fetched from DB on every request
+- Queue-based result release: stagger access by school or class
+- CDN for static result pages where possible
+- Auto-scaling configured: server capacity doubles automatically at peak
+
+---
+
+## EC-SCALE-002: 100 Schools All Sync Attendance at 9:10 AM
+
+**Scenario:** All schools start at 9 AM. Attendance marked by 9:10 AM. 100 teachers all sync simultaneously.
+
+**What breaks if ignored:** Database write spike. Connection pool exhausted. Sync fails for many teachers. Attendance data for the day incomplete.
+
+**Recommended Fix:**
+- Async attendance sync via message queue (not direct DB write)
+- Queue absorbs the spike, processes at sustainable rate
+- Teacher sees "Synced" once queue confirms receipt — not waiting for DB write
+- Queue depth monitoring — alert if processing falls behind
+
+---
+
+## EC-SCALE-003: Storage Grows Without Bound
+
+**Scenario:** 100 schools × 20 teachers × 2 file uploads/week × 52 weeks = 208,000 files/year. After 5 years: 1,040,000 files.
+
+**What breaks if ignored:** Storage costs become unmanageable. File retrieval slows down. Search becomes slow. System bogs down.
+
+**Recommended Fix:**
+- File lifecycle policy: materials older than 3 years moved to cold storage automatically
+- Per-school storage quota enforced
+- GMC Admin sees storage usage per school with cost estimate
+- Deduplification: identical files stored once, referenced multiple times
+
+---
+
+## EC-SCALE-004: Report Generation Blocks Main Server
+
+**Scenario:** Principal generates "Annual Progress Report for all 600 students." Server tries to generate 600 PDF files inline. Main server freezes for 4 minutes.
+
+**What breaks if ignored:** During those 4 minutes, all 50,000 students on the platform experience slow or failed requests.
+
+**Recommended Fix:**
+- Report generation is async — background job
+- Principal sees: "Your report is being generated. You'll be notified when ready."
+- Dedicated background worker server — separate from main API server
+- Bulk reports generated overnight for next-day download

@@ -1,0 +1,26 @@
+1.  municipalities          ← koi dependency nahi
+2.  schools                 ← needs: municipalities
+3.  users                   ← needs: schools, municipalities
+4.  academic_years          ← needs: schools
+5.  subjects                ← needs: schools
+6.  classes                 ← needs: schools, academic_years, users(teacher)
+7.  class_subjects          ← needs: classes, subjects, users, schools
+8.  student_classes         ← needs: users, classes, academic_years, schools
+9.  student_parents         ← needs: users
+10. timetable_slots         ← needs: classes, class_subjects, schools
+11. school_holidays         ← needs: schools, users
+12. attendance_records      ← needs: classes, schools, academic_years, users
+13. attendance_entries      ← needs: attendance_records, users, schools
+14. materials               ← needs: class_subjects, schools, users
+15. material_versions       ← needs: materials, users
+16. assignments             ← needs: class_subjects, schools, users
+17. submissions             ← needs: assignments, users, schools
+18. assessments             ← needs: class_subjects, schools, academic_years, users
+19. mark_entries            ← needs: assessments, users, schools
+20. notifications           ← needs: schools, users
+21. refresh_tokens          ← needs: users
+22. otp_requests            ← koi FK nahi
+23. consent_records         ← needs: users
+24. data_erasure_requests   ← needs: users
+25. student_transfers       ← needs: users, schools, classes
+26. audit_logs              ← needs: users, schools

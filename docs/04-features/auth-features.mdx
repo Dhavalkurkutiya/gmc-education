@@ -1,0 +1,171 @@
+# Authentication Features
+
+**Version:** 1.0
+**Last Updated:** May 2026
+
+---
+
+## F-AU-001 — Roll Number + PIN Login
+
+**User:** Student
+**Priority:** P0
+
+**What it does**
+Student logs in using their school roll number and a 4-digit PIN. No email, no complex password.
+
+**Behaviour**
+- Roll number field: numeric only, auto-formatted
+- PIN field: 4 digits, masked input, numeric keyboard on mobile
+- Login button disabled until both fields filled
+- Wrong credentials: show error message in Gujarati, do not reveal which field is wrong
+- 5 wrong attempts in a row: account locked for 30 minutes, show countdown timer
+- Successful login: redirect to student home screen, session persists for 7 days
+
+**Out of scope**
+- Biometric login (Phase 2)
+- Social login (never)
+
+---
+
+## F-AU-002 — Employee ID + Password Login
+
+**User:** Teacher, Principal
+**Priority:** P0
+
+**What it does**
+Teacher and Principal log in using their GMC employee ID and a password set during onboarding.
+
+**Behaviour**
+- Employee ID field: alphanumeric
+- Password field: masked, show/hide toggle
+- Role detected automatically from employee ID — no role selector needed
+- 5 wrong attempts: account locked for 1 hour
+- First login: forced password change screen
+- Password rules: minimum 8 characters, at least one number
+
+**Out of scope**
+- SSO with GMC HR system (Phase 2)
+
+---
+
+## F-AU-003 — Mobile OTP Login
+
+**User:** Parent
+**Priority:** P0
+
+**What it does**
+Parent logs in using only their registered mobile number. OTP sent via SMS. No password required.
+
+**Behaviour**
+- Mobile number field: 10 digit Indian number, auto-validates format
+- OTP: 6 digits, valid for 10 minutes
+- Resend OTP available after 60 seconds
+- Maximum 3 OTP requests per hour per number
+- Successful login: linked to child profile automatically via registered number
+- If number not found: show "Contact your school to register your number"
+
+**Out of scope**
+- WhatsApp OTP (Phase 2)
+
+---
+
+## F-AU-004 — PIN Reset via OTP
+
+**User:** Student
+**Priority:** P0
+
+**What it does**
+Student resets their PIN using an OTP sent to the parent's registered mobile number.
+
+**Behaviour**
+- Student enters roll number on login screen, taps "Forgot PIN"
+- OTP sent to parent mobile number registered in system
+- Student enters OTP, then sets new 4-digit PIN
+- Confirmation screen shown, redirects to login
+- Old PIN invalidated immediately on reset
+
+**Edge cases handled**
+- Parent number not registered: show "Ask your teacher to help reset your PIN"
+- OTP expired: resend option available
+
+---
+
+## F-AU-005 — Password Reset via OTP
+
+**User:** Teacher, Principal
+**Priority:** P0
+
+**What it does**
+Teacher resets password via OTP to their registered mobile number.
+
+**Behaviour**
+- Same OTP flow as F-AU-004
+- New password must meet rules from F-AU-002
+- Last 3 passwords cannot be reused
+
+---
+
+## F-AU-006 — Role-Based Access Control
+
+**User:** All
+**Priority:** P0
+
+**What it does**
+Each user type sees only what they are allowed to see. A student cannot access teacher screens. A teacher cannot access admin screens.
+
+**Role Permissions Table**
+
+| Feature | Student | Parent | Teacher | Principal | GMC Admin |
+|---|---|---|---|---|---|
+| View own marks | Yes | Yes (child) | No | Yes | Yes |
+| Enter marks | No | No | Yes | No | No |
+| View all school marks | No | No | No | Yes | Yes |
+| Mark attendance | No | No | Yes | No | No |
+| Approve attendance edits | No | No | No | Yes | No |
+| Add schools | No | No | No | No | Yes |
+| View audit log | No | No | No | No | Yes |
+
+**Behaviour**
+- Role assigned at account creation, cannot be self-changed
+- Attempting to access a forbidden URL returns 403 screen in Gujarati
+- All API endpoints enforce role check server-side — frontend enforcement is supplementary only
+
+---
+
+## F-AU-007 — Session Timeout
+
+**User:** All
+**Priority:** P0
+
+**What it does**
+Inactive sessions are expired to protect accounts on shared devices.
+
+**Behaviour**
+- Student: session expires after 7 days of inactivity
+- Teacher / Principal: session expires after 24 hours of inactivity
+- GMC Admin: session expires after 8 hours of inactivity
+- On expiry: redirect to login with message "Session expired, please log in again"
+- Offline mode: cached content still accessible after session expires, but new data requires re-login
+
+---
+
+## F-AU-008 — Account Lock on Failed Attempts
+
+**User:** All
+**Priority:** P0
+
+**What it does**
+Protects accounts from brute-force attacks.
+
+**Behaviour**
+- Student: 5 failed PINs → 30 minute lock
+- Teacher / Principal: 5 failed passwords → 1 hour lock
+- Parent: 3 failed OTP entries → 1 hour lock on that number
+- Lock countdown shown on screen
+- GMC Admin can manually unlock any account
+- Principal can unlock teacher accounts in their school
+- All lock events logged in audit trail
+
+---
+
+*All authentication flows must be tested on slow 2G connections. Login must complete within 5 seconds on 3G.*

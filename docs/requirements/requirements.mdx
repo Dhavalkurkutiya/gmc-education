@@ -1,0 +1,206 @@
+# Product Requirements Document — GMC Education Portal
+
+**Document ID:** REQ-01  
+**Version:** 1.0  
+**Date:** 2026  
+**Prepared By:** Product Team  
+**For:** Gandhinagar Municipal Corporation (GMC)  
+**Status:** Draft — Pending GMC Approval
+
+---
+
+## 1. Executive Summary
+
+The GMC Education Portal is a digital learning management system for government schools under Gandhinagar Municipal Corporation. It provides students, parents, teachers, principals, and GMC administrators with a single digital platform for attendance tracking, academic materials, assignment management, progress monitoring, and school communications.
+
+The platform is designed for reliable operation in low-connectivity environments on low-cost Android devices, with offline capability as a core requirement.
+
+---
+
+## 2. Scope of Delivery
+
+### In Scope
+
+- Android mobile application for students, parents, and teachers
+- Web portal for principals and GMC administrators
+- Automated SMS notification system for parents
+- Offline-capable student library and assignment system
+- Attendance management with reporting
+- Marks entry and progress reporting
+- School and user management for GMC administrators
+- System documentation and training materials
+
+### Out of Scope (Version 1.0)
+
+- iOS application
+- AI-based learning recommendations
+- Integration with state board examination systems
+- Fee management or payment processing
+- Third-party course content
+- Video conferencing or live class features
+- National-level data reporting
+
+---
+
+## 3. User Roles and Access Summary
+
+| Role | Platform | Core Access |
+|---|---|---|
+| Student | Android App | Library, Timetable, Assignments, Marks, Progress |
+| Parent | Android App + SMS | Child's Attendance, Marks, Alerts |
+| Teacher | Android App + Web | Attendance, Materials Upload, Grading |
+| Principal | Web Portal | School Reports, Teacher Management, Oversight |
+| GMC Admin | Web Portal | All Schools Dashboard, User Management, Analytics |
+
+---
+
+## 4. Functional Requirements
+
+### FR-01: Authentication and Authorization
+
+- FR-01.1: Students log in using School-issued Student ID and 6-digit PIN
+- FR-01.2: Teachers and above log in using email and password
+- FR-01.3: First-time login requires OTP verification via registered phone number
+- FR-01.4: Sessions expire after 15 minutes of inactivity (configurable by GMC Admin)
+- FR-01.5: Each user can access only data relevant to their role and school
+- FR-01.6: PIN/password reset available via Teacher verification for students; via Principal for teachers
+
+### FR-02: Student Features
+
+- FR-02.1: Student can view class timetable (updates within 24 hours of change)
+- FR-02.2: Student can browse subject-wise library of materials uploaded by teacher
+- FR-02.3: Student can download materials for offline access
+- FR-02.4: Student can view assignments with deadline, description, and attached files
+- FR-02.5: Student can submit assignments (file upload) before deadline
+- FR-02.6: Student can view marks for all subjects and all assessments
+- FR-02.7: Student can view own attendance record (monthly and yearly view)
+- FR-02.8: Student can view overall progress summary
+- FR-02.9: All features accessible offline after initial sync
+
+### FR-03: Parent Features
+
+- FR-03.1: Parent receives SMS when child is marked absent — same day by 10 AM
+- FR-03.2: Parent receives SMS when exam results published
+- FR-03.3: Parent receives SMS when child's attendance drops below 75%
+- FR-03.4: Parent can log in to view child's attendance, marks, and assignments
+- FR-03.5: Parent can link to multiple children (one account, multiple children)
+- FR-03.6: Parent can set language preference: Gujarati or English
+
+### FR-04: Teacher Features
+
+- FR-04.1: Teacher can mark attendance for assigned classes — online or offline
+- FR-04.2: Attendance must support: Present, Absent, Late, Excused
+- FR-04.3: Teacher can upload study materials (PDF, images) per subject per class
+- FR-04.4: Teacher can create assignments with deadline, description, and file attachments
+- FR-04.5: Teacher can view submitted assignments and grade them with marks and comments
+- FR-04.6: Teacher can enter marks for assessments per student
+- FR-04.7: Teacher can view class progress report
+- FR-04.8: Teacher can communicate announcements to class
+
+### FR-05: Principal Features
+
+- FR-05.1: Principal can view school-wide attendance dashboard
+- FR-05.2: Principal can view all classes' marks and progress
+- FR-05.3: Principal can manage teacher accounts (approve, suspend, reset)
+- FR-05.4: Principal can set school timetable
+- FR-05.5: Principal can configure school calendar (holidays, exam dates)
+- FR-05.6: Principal can generate and download school reports (attendance, performance)
+- FR-05.7: Principal can broadcast announcements to all parents via SMS
+
+### FR-06: GMC Admin Features
+
+- FR-06.1: GMC Admin can onboard new schools (create school + assign principal)
+- FR-06.2: GMC Admin can view all schools on a single dashboard
+- FR-06.3: GMC Admin can view school-wise analytics (attendance trends, material uploads, active users)
+- FR-06.4: GMC Admin can bulk import students via CSV
+- FR-06.5: GMC Admin can manage academic year settings
+- FR-06.6: GMC Admin can view system health and notification delivery reports
+- FR-06.7: GMC Admin can export data for government reporting
+
+### FR-07: Offline Requirements
+
+- FR-07.1: Student and teacher apps must function offline after initial setup
+- FR-07.2: Offline actions must be queued and synced when connectivity restored
+- FR-07.3: Conflict resolution must be automatic with user notification
+- FR-07.4: Offline status must be clearly indicated in UI
+- FR-07.5: Last sync time displayed to user at all times
+
+### FR-08: Notification Requirements
+
+- FR-08.1: SMS delivery for P0 notifications must have 95%+ success rate
+- FR-08.2: SMS must use transactional route (not promotional) for DND compliance
+- FR-08.3: Failed notifications must be retried up to 3 times
+- FR-08.4: Notification delivery status trackable by Principal and GMC Admin
+- FR-08.5: No SMS to be sent between 9 PM and 7 AM IST
+
+---
+
+## 5. Non-Functional Requirements
+
+### Performance
+
+- App launch time: under 5 seconds on a 2GB RAM Android device
+- API response time: under 2 seconds for 95th percentile requests
+- File download: progress indicator shown; must support resume on connection drop
+- System must support 50,000 concurrent registered users
+
+### Availability
+
+- Uptime target: 99.5% (approximately 44 hours downtime per year maximum)
+- Planned maintenance only outside school hours: 10 PM to 5 AM IST
+- All planned maintenance announced 24 hours in advance via in-app notice
+
+### Scalability
+
+- System must support 100+ schools without performance degradation
+- Architecture must support horizontal scaling during peak traffic
+
+### Compatibility
+
+- Android: version 6.0 (API 23) and above
+- Minimum supported device: 1GB RAM, 16GB storage
+- Web portal: Chrome 90+, Firefox 88+, Edge 90+
+
+### Data Privacy
+
+- Compliant with India's Digital Personal Data Protection Act 2023
+- No student personal data shared with third parties other than SMS gateway
+- All data stored on servers located within India
+
+---
+
+## 6. Constraints
+
+- All UI must be available in English and Gujarati
+- App APK size must not exceed 15MB
+- No dependency on Google Play Store for core functionality (sideloading must be possible)
+- No feature must require iOS device
+- Budget for SMS: estimated 2 lakh messages per month — vendor must be cost-optimized
+
+---
+
+## 7. Assumptions
+
+- GMC will provide server infrastructure or cloud budget
+- Each school has at least one teacher capable of using a smartphone
+- GMC will appoint a Data Protection Officer before launch
+- SMS gateway will be government-approved vendor
+- School principal training will be conducted before each school goes live
+- Student data from existing school records will be provided for import in clean CSV format
+
+---
+
+## 8. Acceptance Criteria for Project Delivery
+
+The product is considered delivered when:
+
+1. All P0 functional requirements pass QA testing
+2. Load test at 50,000 users passes with under 2 second response time
+3. Offline mode passes QA on all 5 mandatory device types
+4. Security penetration test completed with all P0/P1 findings resolved
+5. DPDP compliance audit completed and signed off
+6. 2 pilot schools complete UAT with positive sign-off
+7. Training completed for GMC Admin, Principals, and Teachers at pilot schools
+8. Helpline operational and staffed
+9. Documentation delivered: User manuals in Gujarati and English, Technical documentation, API documentation
+

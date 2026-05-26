@@ -1,0 +1,254 @@
+# Student Features
+
+**Version:** 1.0
+**Last Updated:** May 2026
+
+---
+
+## F-ST-001 — Subject-wise Material Library
+
+**User:** Student
+**Priority:** P0
+
+**What it does**
+Central place where students browse all study materials uploaded by teachers, organized by subject.
+
+**Behaviour**
+- Home screen has "Library" tab
+- Materials grouped by subject — Maths, Science, Gujarati, etc.
+- Each material shows: title, subject, chapter, teacher name, upload date, file size
+- Tapping opens the file in-app viewer (F-ST-002)
+- New materials since last visit marked with a "New" badge
+- Search bar to find material by title or subject
+- Loads from local cache when offline, shows "Last updated" timestamp
+
+---
+
+## F-ST-002 — PDF Viewer In-App
+
+**User:** Student
+**Priority:** P0
+
+**What it does**
+Opens PDF and image files directly inside the app without needing a third-party app.
+
+**Behaviour**
+- Supports PDF and JPG/PNG
+- Pinch to zoom
+- Swipe to next page on PDF
+- Download button visible while viewing
+- Works fully offline for downloaded files
+- For non-downloaded files: shows loading indicator, falls back to "Download to read offline" if no internet
+
+---
+
+## F-ST-003 — Offline Note Download
+
+**User:** Student
+**Priority:** P0
+
+**What it does**
+Student downloads materials to phone storage and reads them with no internet.
+
+**Behaviour**
+- Download button on every material in library
+- Download progress bar shown
+- Downloaded files stored in app's private storage — not accessible from file manager by other apps
+- Airplane mode test: downloaded files open fully offline
+- Storage full: show clear error "Storage full. Delete some files to download more"
+- Download fails midway: show retry button
+- File updated by teacher: show "Updated version available" badge on downloaded file
+
+**Limits**
+- Maximum 500MB total offline storage per student
+- Warning shown at 400MB
+- Individual file limit: 25MB
+
+---
+
+## F-ST-004 — Downloaded Files Manager
+
+**User:** Student
+**Priority:** P1
+
+**What it does**
+Dedicated screen to manage all downloaded materials.
+
+**Behaviour**
+- Lists all downloaded files with size and download date
+- Total storage used shown at top with progress bar
+- Delete button on each file with confirmation
+- "Delete all" option with typed confirmation
+- Files sorted by most recently downloaded
+
+---
+
+## F-ST-005 — Daily Timetable View
+
+**User:** Student
+**Priority:** P0
+
+**What it does**
+Shows today's class schedule on the home screen.
+
+**Behaviour**
+- Defaults to current day on open
+- Each slot shows: period number, subject, teacher name, time
+- Current period highlighted
+- Holiday or no-school day: shows "Holiday" message
+- Loads from cache offline
+- Timetable set by school, student cannot edit
+
+---
+
+## F-ST-006 — Weekly Timetable View
+
+**User:** Student
+**Priority:** P1
+
+**What it does**
+Full week timetable in one view.
+
+**Behaviour**
+- Day tabs across top: Mon, Tue, Wed, Thu, Fri, Sat
+- Tapping day shows that day's periods
+- Defaults to current day on open
+
+---
+
+## F-ST-007 — Pending Assignments List
+
+**User:** Student
+**Priority:** P0
+
+**What it does**
+Shows all assignments the student needs to complete.
+
+**Behaviour**
+- Separate tabs: Pending, Submitted, All
+- Each assignment shows: subject, title, due date, days remaining
+- Overdue assignments shown in red at top of list
+- Due today shown in amber
+- Tapping assignment opens detail with description and submission option
+- Updates from cache when offline
+
+---
+
+## F-ST-008 — Assignment Submission via Photo Upload
+
+**User:** Student
+**Priority:** P0
+
+**What it does**
+Student submits handwritten or digital work by uploading a photo or PDF.
+
+**Behaviour**
+- Two options: Take Photo or Upload from Gallery
+- Multiple photos allowed per submission (max 5 images or 1 PDF)
+- Max file size: 10MB total per submission
+- Preview before final submit
+- Submission timestamp recorded server-side
+- Cannot resubmit after teacher has graded — only before grading
+- Confirmation screen shown after successful submission
+
+---
+
+## F-ST-009 — Offline Assignment Queue
+
+**User:** Student
+**Priority:** P0
+
+**What it does**
+If student submits when offline, submission is queued and auto-uploaded when internet returns.
+
+**Behaviour**
+- Submission saved locally with "Pending Upload" status
+- Banner on home screen: "1 submission waiting to upload"
+- Auto-uploads in background when internet detected
+- If deadline passes while still queued: submission marked as late, teacher can see it was queued before deadline
+- Student notified when upload completes
+
+---
+
+## F-ST-010 — Grade and Feedback View
+
+**User:** Student
+**Priority:** P0
+
+**What it does**
+Student sees their grade and teacher's written feedback after grading.
+
+**Behaviour**
+- Graded assignments appear in "Submitted" tab with grade shown
+- Tapping shows full feedback text from teacher
+- Push notification sent when grade is available
+- Grade shown as number out of total (e.g. 18/25)
+
+---
+
+## F-ST-011 — Attendance Percentage View
+
+**User:** Student
+**Priority:** P1
+
+**What it does**
+Student sees their own attendance data.
+
+**Behaviour**
+- Overall attendance % shown prominently
+- Subject-wise breakdown below
+- Colour coding: above 75% green, 65-75% amber, below 65% red
+- Monthly calendar view — present days green, absent days red, holidays grey
+- "You need X more days to reach 75%" shown if below threshold
+
+---
+
+## F-ST-012 — Exam Marks History
+
+**User:** Student
+**Priority:** P1
+
+**What it does**
+Full history of all exam results.
+
+**Behaviour**
+- Listed by most recent first
+- Each entry: exam name, subject, date, marks obtained, total marks
+- Simple pass/fail indicator
+- No complex charts in Phase 1 — just a clean list
+
+---
+
+## F-ST-013 — Home Screen Progress Summary
+
+**User:** Student
+**Priority:** P1
+
+**What it does**
+Quick snapshot on home screen so student does not need to navigate to see status.
+
+**Behaviour**
+- Three summary cards: Attendance %, Pending Assignments count, Last Exam Score
+- Tapping any card navigates to full detail screen
+- Updates daily
+
+---
+
+## F-ST-014 — Gujarati Language Support
+
+**User:** Student
+**Priority:** P0
+
+**What it does**
+Entire app UI displayed in Gujarati by default.
+
+**Behaviour**
+- All labels, buttons, error messages, notifications in Gujarati
+- Gujarati font loads as part of app — does not require internet
+- Numbers shown in standard numerals (not Gujarati script numerals) for clarity
+- Language setting: Gujarati default, Hindi and English available in settings
+- Teacher-uploaded content language is not changed — only UI elements
+
+---
+
+*All student features must be tested on Android 8, 2GB RAM device. Any feature that takes more than 3 seconds to load on 3G must be optimised before release.*

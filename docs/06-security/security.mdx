@@ -1,0 +1,247 @@
+# Security Architecture — GMC Education Portal
+
+**Document ID:** SEC-06  
+**Last Updated:** 2026  
+**Owner:** Tech Lead + Security Auditor  
+**Compliance:** India DPDP Act 2023, IT Act 2000
+
+---
+
+## 1. Security Principles
+
+These five principles apply to every technical decision in this project.
+
+**Least Privilege** — Every user, every API, every service gets only the minimum access needed. A student's token cannot call a teacher endpoint. A teacher cannot call an admin endpoint. No exceptions.
+
+**Defense in Depth** — Multiple layers of security. If one layer fails, the next catches it. Frontend validation + backend validation + database constraints — all three, always.
+
+**Privacy by Design** — Personal data not collected unless necessary. Not logged unless necessary. Not exposed in APIs unless necessary.
+
+**Auditability** — Every sensitive action logged: who did what, when, from which IP. Logs cannot be deleted by regular users.
+
+**Fail Secure** — When something breaks, it fails in a safe way. A broken auth check should deny access, never grant it.
+
+---
+
+## 2. Authentication Architecture
+
+### Token Strategy
+
+```
+Access Token:   JWT, 15 minute expiry, contains userId + role + schoolId
+Refresh Token:  Opaque token, 7 day expiry, stored in HttpOnly cookie
+Token Rotation: Every refresh generates new refresh token; old one invalidated immediately
+```
+
+### PIN / Password Requirements
+
+- Student PIN: 6 digits minimum
+- Teacher password: 8 characters, must include number and letter
+- Principal/Admin password: 12 characters, must include uppercase + number + special character
+- Passwords hashed with bcrypt (cost factor 12) — never stored plaintext
+
+### Session Management
+
+- Logout invalidates both access token and refresh token immediately
+- Password change invalidates all active sessions for that account
+- New device login triggers SMS alert to registered number
+- Concurrent session limit: 2 active sessions per account (prevents token sharing)
+
+### Multi-Factor Authentication
+
+| Role | 2FA Required | Method |
+|---|---|---|
+| Student | No | PIN only |
+| Parent | No | OTP on login from new device |
+| Teacher | Optional | SMS OTP |
+| Principal | Yes | SMS OTP mandatory |
+| GMC Admin | Yes | TOTP (Google Authenticator) |
+| Super Admin | Yes | TOTP + IP whitelist |
+
+---
+
+## 3. Authorization Architecture
+
+### Role Hierarchy
+
+```
+SUPER_ADMIN
+    └── GMC_ADMIN (per municipality)
+            └── PRINCIPAL (per school)
+                    ├── TEACHER (per school, per subject)
+                    ├── PARENT (linked to specific students)
+                    └── STUDENT (per school, per class)
+```
+
+### Row-Level Security Rules
+
+Every database query must include a `school_id` filter derived from the authenticated user's JWT — never from request parameters.
+
+```
+Students table:  WHERE school_id = :token.schoolId
+Marks table:     WHERE student.school_id = :token.schoolId
+Files table:     WHERE uploaded_by_school_id = :token.schoolId
+```
+
+### API Authorization Matrix
+
+| Endpoint | Student | Parent | Teacher | Principal | GMC Admin |
+|---|---|---|---|---|---|
+| GET /my-marks | Own only | Own child only | Own class only | Own school | All schools |
+| GET /attendance | Own only | Own child only | Own class only | Own school | All schools |
+| POST /upload-material | ❌ | ❌ | Own subjects | ✅ | ✅ |
+| DELETE /student | ❌ | ❌ | ❌ | Soft only | Hard archive |
+| GET /export-data | ❌ | ❌ | Own class (logged) | Own school (logged) | All (logged) |
+
+---
+
+## 4. Data Protection
+
+### Data Classification
+
+| Data Type | Classification | Storage | Transit |
+|---|---|---|---|
+| Student name, class | Internal | Encrypted at rest | TLS 1.3 |
+| Marks, attendance | Confidential | Encrypted at rest | TLS 1.3 |
+| Home address | Confidential | Encrypted at rest | TLS 1.3 |
+| Parent phone number | Confidential | Encrypted + masked in logs | TLS 1.3 |
+| Aadhaar-linked ID | Restricted | Encrypted + tokenized | TLS 1.3 |
+| Uploaded files (notes) | Internal | Encrypted at rest | TLS 1.3 |
+
+### Database Encryption
+
+- All RDS/PostgreSQL instances: encryption at rest enabled (AES-256)
+- Mobile local database: SQLCipher encryption
+- Encryption keys stored in AWS KMS or equivalent — never in code
+
+### Data Retention Policy
+
+| Data | Retention Period | Action After |
+|---|---|---|
+| Student academic records | 7 years after graduation | Archive to cold storage |
+| Attendance records | 5 years | Archive |
+| Uploaded study materials | 3 years | Delete unless archived |
+| SMS logs | 1 year | Delete |
+| Security audit logs | 3 years | Cannot be deleted |
+| Parent consent records | Duration of minor's enrollment + 3 years | Delete after |
+
+---
+
+## 5. DPDP Act 2023 Compliance
+
+The Digital Personal Data Protection Act applies because this system processes personal data of Indian citizens, including minors.
+
+### Requirements and Implementation
+
+**Consent Collection**
+- Parent/guardian consent collected before any student data processed
+- Consent form stored digitally with timestamp, IP address, and parent identity
+- Consent is specific (what data), limited (for education purpose only), and revocable
+
+**Rights of Data Principal (Parent/Student)**
+- Right to Access: Parent can download all data stored about their child
+- Right to Correction: Parent can request correction of inaccurate data
+- Right to Erasure: Parent can request deletion — processed within 72 hours
+- Right to Grievance: Helpline number and email published in app
+
+**Data Minimization**
+- Only collect data necessary for educational purpose
+- Home address optional — not mandatory for portal use
+- Aadhaar number never collected or stored
+
+**Data Processing Agreement**
+- Any third-party vendor (SMS gateway, cloud provider) must sign DPA
+- No student data shared with advertising platforms ever
+
+**Data Protection Officer (DPO)**
+- GMC must appoint a DPO
+- DPO contact displayed in app under "Privacy" section
+- DPO responsible for breach notification to DPBI within 72 hours of discovery
+
+---
+
+## 6. Network Security
+
+### API Security
+
+- All API traffic over HTTPS only — HTTP redirected to HTTPS, no exceptions
+- TLS 1.2 minimum, TLS 1.3 preferred
+- HSTS header enabled: `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+- CORS: only school portal domains whitelisted — no wildcard `*`
+
+### Input Validation
+
+- All inputs validated on server side — frontend validation is UX only, never security
+- SQL queries use parameterized statements only — no string concatenation
+- All file uploads scanned for malware before storage
+- HTML/JS content in text fields escaped before storage and display
+
+### Rate Limiting
+
+| Endpoint | Limit |
+|---|---|
+| Login | 5 attempts per 10 minutes per IP |
+| OTP Request | 3 per hour per phone number |
+| File Upload | 20 per hour per user |
+| Data Export | 5 per day per user |
+| General API | 100 requests per minute per authenticated user |
+
+### Infrastructure
+
+- All servers in private subnet — not directly accessible from internet
+- API Gateway as single public entry point
+- WAF (Web Application Firewall) in front of API Gateway
+- DDoS protection enabled
+- Admin panel accessible only via VPN or IP whitelist
+
+---
+
+## 7. Incident Response Plan
+
+### Severity Levels
+
+**P0 — Critical (respond within 1 hour)**
+- Active data breach confirmed
+- Unauthorized bulk data access detected
+- Production database compromised
+
+**P1 — High (respond within 4 hours)**
+- Suspected unauthorized access
+- Authentication bypass discovered
+- SMS alerts not delivering system-wide
+
+**P2 — Medium (respond within 24 hours)**
+- Individual account compromise reported
+- Single school data anomaly detected
+
+### Response Steps for Data Breach
+
+1. Detect: automated monitoring alert or user report
+2. Contain: revoke affected tokens, block suspicious IPs, disable affected endpoints
+3. Assess: determine what data was accessed, how many users affected
+4. Notify: DPBI notification within 72 hours if personal data breached; affected users notified within 7 days
+5. Remediate: fix vulnerability, restore from clean backup if needed
+6. Document: full incident report, root cause analysis, preventive measures
+7. Review: security team post-mortem within 2 weeks
+
+---
+
+## 8. Security Testing Requirements
+
+### Before Every Release
+- OWASP Top 10 checklist review
+- IDOR (Insecure Direct Object Reference) tests — change IDs in every API call
+- Authentication bypass attempts on all protected endpoints
+- SQL injection test on all input fields
+- File upload security test — attempt to upload executable files
+
+### Before Initial Launch
+- Full penetration test by external security firm
+- Load test to confirm no performance-related security issues
+- DPDP compliance audit by legal team
+- Government security audit (CERT-In guidelines if applicable)
+
+### Ongoing
+- Quarterly access review: remove inactive accounts, review admin privileges
+- Annual penetration test
+- Monthly review of failed login attempts and anomaly alerts

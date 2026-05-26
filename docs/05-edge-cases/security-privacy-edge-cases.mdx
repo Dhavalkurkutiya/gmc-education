@@ -1,0 +1,174 @@
+# Security & Privacy Edge Cases — GMC Education Portal
+
+**Document ID:** EC-05-SEC  
+**Category:** Security & Privacy  
+**Last Updated:** 2026  
+**Owner:** Tech Lead + Security Auditor
+
+---
+
+## EC-SEC-001: Student Data Exposed in API Response
+
+**Scenario:** API for teacher's class list returns all student fields including home address, parent phone number, UID-linked ID.
+
+**What breaks if ignored:** Frontend developer displays only name. But entire response is visible in browser DevTools. Any person on school WiFi can capture this data.
+
+**Recommended Fix:**
+- API returns only fields needed for that specific use case (principle of least exposure)
+- Student list for teacher: return only name, roll number, class — nothing else
+- Personal data (address, parent phone) only returned on explicit profile endpoint with stricter auth
+- All API responses audited quarterly
+
+---
+
+## EC-SEC-002: Parent Can Access Other Students' Data via API Parameter Change
+
+**Scenario:** Parent's app calls `/api/student/1234/marks`. Parent changes `1234` to `1235` in a modified request.
+
+**What breaks if ignored:** Parent sees another student's marks and attendance. DPDP Act violation. Privacy breach.
+
+**Recommended Fix:**
+- API validates: requesting user must be linked parent of student ID in URL
+- Never trust URL parameters alone — always cross-check with authenticated user's linked children
+- Automated security test (IDOR test) run before every release
+
+---
+
+## EC-SEC-003: SMS Alerts Contain Too Much Personal Data
+
+**Scenario:** SMS to parent says: "Your child Dhruv Patel, Roll 42, Class 8B, GMC School No. 4, Sector 12 was absent today."
+
+**What breaks if ignored:** SMS visible in notification bar. Person sitting next to parent on bus sees child's full school and identity details.
+
+**Recommended Fix:**
+- SMS contains minimal info: "Dear Parent, your ward was absent today. Login to portal for details."
+- No student roll number, school address, or class in SMS text
+- SMS includes short masked link to portal for full info
+
+---
+
+## EC-SEC-004: JWT Token Has No Expiry
+
+**Scenario:** Developer forgets to set token expiry. Token issued at login never expires.
+
+**What breaks if ignored:** Stolen token gives permanent access. No way to force logout all sessions. Account compromise = permanent until password changed.
+
+**Recommended Fix:**
+- Access token: 15 minute expiry
+- Refresh token: 7 day expiry
+- Refresh token rotation: each use generates new refresh token, old one invalidated
+- Token blacklist for forced logout (logout, password change, account suspension)
+
+---
+
+## EC-SEC-005: Student Data Stored Unencrypted in App's Local Storage
+
+**Scenario:** App caches student marks and attendance in plaintext in Android SharedPreferences or SQLite without encryption.
+
+**What breaks if ignored:** Anyone with USB debugging access (or rooted phone) can read all student data. School reuses phones — next year student sees previous student's data.
+
+**Recommended Fix:**
+- Local database encrypted using SQLCipher
+- Encryption key derived from user's PIN + device ID
+- On logout: encryption key wiped from memory
+- Factory reset or app uninstall triggers local data wipe
+
+---
+
+## EC-SEC-006: Teacher Can Download Entire School Student List as CSV
+
+**Scenario:** Portal allows teacher to export class list as CSV for "offline use." No restrictions.
+
+**What breaks if ignored:** Teacher exports and shares data on WhatsApp. 500 student records — name, address, parent number — circulating in teacher WhatsApp groups.
+
+**Recommended Fix:**
+- Export requires explicit reason logging
+- Export limited to teacher's own assigned classes only
+- Bulk export (all school) restricted to Principal only
+- Watermark on exported CSV: "Exported by [Teacher Name] on [Date] — Confidential"
+- Export events logged for audit
+
+---
+
+## EC-SEC-007: File Upload Allows Malicious Files (Code Injection via File)
+
+**Scenario:** Attacker uploads an HTML file renamed as `notes.pdf` or a JavaScript file. Server stores it. Student "downloads" it. Browser executes it.
+
+**What breaks if ignored:** Stored XSS attack. Malicious script runs in student's browser. Can steal session tokens, redirect to phishing sites.
+
+**Recommended Fix:**
+- Validate file type by reading actual MIME type (magic bytes), not just extension
+- Whitelist allowed types: `application/pdf`, `image/jpeg`, `image/png`, `video/mp4` only
+- Strip executable permissions from all uploaded files
+- Serve all user-uploaded files from separate domain (CDN) to prevent cookie/session theft
+
+---
+
+## EC-SEC-008: Admin Panel Accessible Without 2FA
+
+**Scenario:** GMC Admin account accessed with just username + password. No second factor.
+
+**What breaks if ignored:** If password phished or leaked, attacker gets full access to all 100 schools' data.
+
+**Recommended Fix:**
+- 2FA mandatory for all roles: Principal and above
+- TOTP-based (Google Authenticator) or SMS OTP
+- Login from new device triggers additional verification
+- Failed login attempts: 5 attempts → 30 minute lockout → alert sent to account owner
+
+---
+
+## EC-SEC-009: DPDP Act Compliance — No Consent Recorded for Minor's Data
+
+**Scenario:** Student (minor) data collected at registration. No explicit parental consent recorded. No consent withdrawal mechanism.
+
+**What breaks if ignored:** Violation of India's Digital Personal Data Protection Act 2023. GMC faces legal action. Portal shutdown ordered.
+
+**Recommended Fix:**
+- Parent consent form collected digitally at registration — stored with timestamp and IP
+- Consent covers: what data collected, how used, retention period
+- Right to erasure: parent can request data deletion — process documented
+- Data retention policy: student data deleted 3 years after graduation unless legal hold
+- DPO (Data Protection Officer) appointed for GMC
+
+---
+
+## EC-SEC-010: Internal APIs Exposed to Internet Without Authentication
+
+**Scenario:** Internal admin API used between microservices not properly secured. Accessible from public internet without auth.
+
+**What breaks if ignored:** Anyone can call internal APIs. Bulk student data export possible. System manipulation without any login.
+
+**Recommended Fix:**
+- Internal APIs accessible only within VPC (private network)
+- mTLS between services for internal communication
+- API gateway at edge — all public traffic goes through single authenticated entry point
+- Penetration test: external scan of all open ports before launch
+
+---
+
+## EC-SEC-011: Logs Contain Sensitive Personal Data
+
+**Scenario:** Developer logs full request body for debugging: `Logging request: { studentId: 1234, marks: 45, address: "Sector 7..." }`
+
+**What breaks if ignored:** Logs stored in plain text. Log aggregation tools (Kibana, CloudWatch) accessible to DevOps team. Student personal data leaked to technical staff unnecessarily.
+
+**Recommended Fix:**
+- Log sanitization: PII fields masked before logging — `address: "[REDACTED]"`
+- Define list of fields that must never be logged: name, address, phone, marks
+- Log retention: 90 days max, then auto-deleted
+- Log access restricted to Senior Tech Lead only
+
+---
+
+## EC-SEC-012: Brute Force on Student PIN (4-Digit)
+
+**Scenario:** Attacker (or curious student) tries all 10,000 combinations for a 4-digit PIN on a classmate's account.
+
+**What breaks if ignored:** Account compromised in minutes. Attacker sees marks, assignments, personal data.
+
+**Recommended Fix:**
+- 5 wrong PIN attempts → 30 minute lockout
+- After lockout: require teacher to manually reset
+- PIN entry: 2 second delay between attempts (even correct ones) to slow brute force
+- Consider 6-digit PIN for better security

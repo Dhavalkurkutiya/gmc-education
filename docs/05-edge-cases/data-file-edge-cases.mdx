@@ -1,0 +1,185 @@
+# Data & File Edge Cases — GMC Education Portal
+
+**Document ID:** EC-05-DATA  
+**Category:** Data & File Management  
+**Last Updated:** 2026  
+**Owner:** Backend Dev + QA
+
+---
+
+## EC-DATA-001: Teacher Uploads File in Unsupported Format
+
+**Scenario:** Teacher uploads .pptx or .docx file as study material. Students' Android apps cannot open these formats.
+
+**What breaks if ignored:** File uploaded successfully from teacher's side. Student downloads it. Cannot open. Confused. Material inaccessible.
+
+**Recommended Fix:**
+- Accept only: PDF, JPG, PNG, MP4 (with size limits)
+- On upload: validate file type by MIME type, not just extension
+- If .docx or .pptx uploaded: auto-convert to PDF on server before storing
+- Show teacher: "File converted to PDF for compatibility."
+
+---
+
+## EC-DATA-002: File Size Too Large for Low-End Phone
+
+**Scenario:** Teacher uploads a 150MB video lecture. Student on 512MB RAM phone tries to download and play it.
+
+**What breaks if ignored:** Download takes 30 minutes on 2G. Phone runs out of memory during playback. App crashes. Student gives up.
+
+**Recommended Fix:**
+- File size limits by type: PDF max 10MB, Image max 5MB, Video max 50MB
+- Video auto-compressed to 360p on server upload
+- Show file size before download: "This file is 45MB. Download on WiFi?"
+- Video streaming instead of full download where possible
+
+---
+
+## EC-DATA-003: Same File Uploaded Multiple Times by Teacher
+
+**Scenario:** Teacher uploads "Chapter 5 Notes.pdf" on Monday. Forgets, uploads same file again on Wednesday. Students now see two identical files.
+
+**What breaks if ignored:** Student library cluttered. Confusion about which version is correct. Storage wasted.
+
+**Recommended Fix:**
+- Checksum comparison on upload — if identical file exists in same subject, warn teacher: "This file already exists. Replace or keep both?"
+- Filename + subject + class deduplication check
+- Teacher can delete or archive old versions
+
+---
+
+## EC-DATA-004: Student Name Has Special Characters — Gujarati Script
+
+**Scenario:** Student's legal name is "ધ્રુવ પટેલ" in Gujarati. System only accepts English alphabets. Registration fails.
+
+**What breaks if ignored:** Student cannot register with legal name. Wrong name stored. Official records mismatch. Problems in exams and certificates.
+
+**Recommended Fix:**
+- All name fields support Unicode — Gujarati, Hindi, English
+- Database columns use `utf8mb4` encoding
+- Display name shown in Gujarati; system ID uses transliterated English internally
+- Name validation allows Gujarati script characters
+
+---
+
+## EC-DATA-005: Marks Entered as Text Instead of Numbers
+
+**Scenario:** Teacher types "Absent" or "A" in marks field instead of numeric value. Or enters "45/50" instead of "45."
+
+**What breaks if ignored:** Grade calculation crashes. Average calculation returns NaN. Progress report shows errors. Parent sees broken report card.
+
+**Recommended Fix:**
+- Marks field is numeric-only input on mobile keyboard
+- Max marks defined per subject — system rejects values above max
+- Separate "Absent/Exempt" toggle — not a text field
+- Server-side validation: marks must be integer between 0 and max_marks
+
+---
+
+## EC-DATA-006: File Upload Succeeds But File Corrupted
+
+**Scenario:** PDF uploaded by teacher. Network dropped mid-upload but server reported success. File stored is truncated.
+
+**What breaks if ignored:** Student downloads file. PDF opens but missing last 3 pages. Student studies incomplete material. Appears in exam unprepared.
+
+**Recommended Fix:**
+- MD5/SHA256 checksum sent with upload
+- Server validates checksum after receiving file
+- If mismatch: file rejected, teacher shown "Upload failed — please try again"
+- Chunked upload with per-chunk validation
+
+---
+
+## EC-DATA-007: Timetable Overlap — Same Teacher in Two Classes at Same Time
+
+**Scenario:** Principal assigns Teacher A to Class 7A at 10 AM Monday AND Class 8B at 10 AM Monday.
+
+**What breaks if ignored:** Teacher has conflicting schedule. Both classes show same teacher. One class effectively has no teacher assigned. Timetable is unreliable.
+
+**Recommended Fix:**
+- Timetable system validates: no teacher can be assigned to two slots at same time
+- Conflict shown immediately on save: "Mr. Sharma is already assigned to Class 8B at this time."
+- Room conflict check as well — same room cannot have two classes simultaneously
+
+---
+
+## EC-DATA-008: Student Submits Assignment With Empty File
+
+**Scenario:** Student selects a 0-byte file or a file that failed to generate. Submission marked as complete.
+
+**What breaks if ignored:** Teacher opens submission. File is blank or won't open. Teacher cannot grade. Student claims they submitted.
+
+**Recommended Fix:**
+- Validate file size > 0 before accepting submission
+- File integrity check on upload
+- Submission only marked COMPLETE after successful file validation
+- Student shown preview of submitted file before final confirmation
+
+---
+
+## EC-DATA-009: Bulk Student Import — Duplicate Roll Numbers in CSV
+
+**Scenario:** GMC Admin imports 500 students via CSV. CSV has two students with Roll Number 42.
+
+**What breaks if ignored:** One student overwrites the other silently. 499 students imported instead of 500. Parent of missing student calls helpline.
+
+**Recommended Fix:**
+- CSV validation before import — check for duplicate roll numbers within file
+- Check for duplicates against existing database records
+- Import preview shown: "498 new, 2 duplicates found — review before importing"
+- Duplicates highlighted, admin chooses: skip or overwrite
+
+---
+
+## EC-DATA-010: Marks Modified After Report Card Generated
+
+**Scenario:** Teacher finds data entry error. Corrects marks after semester report already generated and sent to parents via SMS.
+
+**What breaks if ignored:** System shows updated marks. Parents received old marks via SMS. Discrepancy. Parent questions integrity of records.
+
+**Recommended Fix:**
+- Mark corrections require Principal approval after report card generation
+- Every marks change logged with reason, timestamp, and who changed
+- If correction approved: parent gets re-notification: "Updated marks available for [Child Name]"
+- Report card PDF regenerated automatically after correction
+
+---
+
+## EC-DATA-011: Assignment Deadline Stored in Wrong Timezone
+
+**Scenario:** Server runs on UTC. Teacher in Gandhinagar sets deadline as "31st March 11:59 PM." Stored as UTC — which is 6:30 AM next day. Student submits at 11:45 PM IST. System rejects as late.
+
+**What breaks if ignored:** Student penalized unfairly. Teacher's intended deadline was different. Trust in system broken.
+
+**Recommended Fix:**
+- All times stored in UTC, displayed in IST (Asia/Kolkata)
+- Server timezone explicitly set to IST or all datetime fields stored with timezone info
+- Deadline shown to student in IST explicitly: "Due: 31 March 2026, 11:59 PM IST"
+
+---
+
+## EC-DATA-012: Photo Upload for Profile — Inappropriate Content
+
+**Scenario:** Student (or mischievous peer using shared phone) uploads inappropriate image as profile photo.
+
+**What breaks if ignored:** Offensive image visible to all teachers and students in school. Reputation damage. Parents complain to GMC.
+
+**Recommended Fix:**
+- Content moderation API on all image uploads (Google Vision SafeSearch or equivalent)
+- Profile photos reviewed by Teacher before becoming visible
+- Default avatar used until photo approved
+- Report image option for all users
+
+---
+
+## EC-DATA-013: Assignment File Too Many Versions — Storage Explodes
+
+**Scenario:** Teacher uploads "revised" assignment brief 5 times. Each version stored. Across 100 schools, file versions accumulate into terabytes.
+
+**What breaks if ignored:** Storage costs skyrocket. Old versions never cleaned. S3 bill becomes unmanageable.
+
+**Recommended Fix:**
+- Versioning retained for only last 3 versions per file
+- Older versions archived to cold storage (S3 Glacier) after 6 months
+- Storage quota per school: 50GB default, expandable by GMC Admin
+- GMC Admin sees storage usage dashboard per school

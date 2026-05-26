@@ -1,0 +1,585 @@
+# Parent, Principal, GMC Admin & Offline Features
+
+**Version:** 1.0
+**Last Updated:** May 2026
+
+---
+
+# Parent Features
+
+---
+
+## F-PA-001 — Absence SMS Alert
+
+**User:** Parent
+**Priority:** P0
+
+**What it does**
+Parent receives SMS within 30 minutes when child is marked absent.
+
+**Behaviour**
+- Triggered automatically when teacher submits attendance with student marked absent
+- SMS in Gujarati: "Dear Parent, [Child Name] of Class [X] was absent on [Date]. — GMC Education Portal"
+- Sent to registered parent mobile number only
+- Delivery failure: retry 3 times over 2 hours, log final status
+- Duplicate prevention: one SMS per student per day regardless of how many periods absent
+- Holiday or declared no-school: no SMS sent
+
+---
+
+## F-PA-002 — Marks Published SMS Alert
+
+**User:** Parent
+**Priority:** P0
+
+**What it does**
+Parent notified when exam results are published.
+
+**Behaviour**
+- SMS sent within 1 hour of teacher publishing marks
+- Message includes: subject, marks obtained, total marks
+- One SMS per exam per subject — not per student session
+- If parent has app: push notification sent in addition to SMS
+
+---
+
+## F-PA-003 — Low Attendance SMS Alert
+
+**User:** Parent
+**Priority:** P0
+
+**What it does**
+Early warning SMS when child's attendance drops below 75%.
+
+**Behaviour**
+- Triggered once per month when monthly attendance drops below 75%
+- SMS includes current percentage and minimum required
+- Not sent again until next month even if attendance drops further
+- Sent regardless of whether parent has app installed
+
+---
+
+## F-PA-004 — School Announcement SMS
+
+**User:** Parent
+**Priority:** P1
+
+**What it does**
+Important school notices delivered via SMS to parents.
+
+**Behaviour**
+- Principal or GMC marks announcement as "Send SMS to parents"
+- SMS sent to all registered parent numbers for that school
+- Maximum 2 non-emergency announcement SMS per week
+- Emergency announcements: no weekly limit
+- SMS opt-out respected (F-PA-008) except for emergencies
+
+---
+
+## F-PA-005 — Parent App — Attendance View
+
+**User:** Parent
+**Priority:** P1
+
+**What it does**
+Parent opens app to see full attendance history for child.
+
+**Behaviour**
+- Calendar view: present green, absent red, holiday grey
+- Subject-wise percentage listed below calendar
+- Current month default, can navigate to previous months
+- Loads from cache if offline — shows last synced timestamp
+
+---
+
+## F-PA-006 — Parent App — Marks View
+
+**User:** Parent
+**Priority:** P1
+
+**What it does**
+Parent sees all exam results in the app.
+
+**Behaviour**
+- Listed by most recent exam first
+- Subject, exam name, marks obtained, total marks
+- Pass/fail indicator
+- No charts — just clean list, easy to read
+- Loads from cache offline
+
+---
+
+## F-PA-007 — Multi-Child Profile Switch
+
+**User:** Parent
+**Priority:** P1
+
+**What it does**
+One parent account handles multiple children without separate logins.
+
+**Behaviour**
+- Up to 4 children linkable to one parent number
+- Switcher visible on home screen — shows child name and class
+- SMS alerts include child name to distinguish
+- Each child's data completely separate
+
+---
+
+## F-PA-008 — SMS Opt-Out for Announcements
+
+**User:** Parent
+**Priority:** P2
+
+**What it does**
+Parent can stop receiving non-critical announcement SMS.
+
+**Behaviour**
+- Toggle in app settings
+- Also works by replying STOP to the SMS sender number
+- Absence, marks, and low attendance alerts cannot be turned off
+- Opt-out logged — not applied to critical alerts
+
+---
+
+---
+
+# Principal Features
+
+---
+
+## F-PR-001 — School Attendance Dashboard
+
+**User:** Principal
+**Priority:** P0
+
+**What it does**
+Real-time view of today's attendance across all classes.
+
+**Behaviour**
+- Grid showing each class with today's attendance %
+- Below 75%: amber. Below 60%: red. Above 75%: green
+- Updates live as teachers submit
+- Shows last updated time per class
+- Tapping class shows student-level breakdown
+- Works on both desktop and mobile
+
+---
+
+## F-PR-002 — Teacher Submission Status View
+
+**User:** Principal
+**Priority:** P0
+
+**What it does**
+Which teachers have and have not submitted attendance today.
+
+**Behaviour**
+- List of all teachers with: name, subject/class, submission status, time submitted
+- Pending teachers shown at top
+- One-tap reminder to pending teacher (sends push notification)
+- Resets daily at midnight
+
+---
+
+## F-PR-003 — Low Attendance Student Report
+
+**User:** Principal
+**Priority:** P0
+
+**What it does**
+List of all students with critically low attendance.
+
+**Behaviour**
+- Default filter: below 65% this month
+- Adjustable threshold: 50%, 65%, 75%
+- Shows: student name, class, teacher, attendance %, days absent
+- Sort by attendance % ascending
+- Export as PDF — one tap
+- Format suitable for official submission
+
+---
+
+## F-PR-004 — Attendance Edit Approval
+
+**User:** Principal
+**Priority:** P0
+
+**What it does**
+Principal approves or rejects teacher requests to edit past attendance.
+
+**Behaviour**
+- Notification badge on principal home when request pending
+- Request shows: teacher name, student name, original value, new value, reason given
+- Approve or Reject with one tap
+- Rejection requires principal to write a reason
+- Both approve and reject logged permanently
+- Teacher notified of decision
+
+---
+
+## F-PR-005 — Marks Edit Approval
+
+**User:** Principal
+**Priority:** P0
+
+**What it does**
+Same approval flow for marks corrections.
+
+**Behaviour**
+- Identical to F-PR-004 but for marks
+- Shows original mark, proposed mark, reason
+- Audit trail updated on either decision
+
+---
+
+## F-PR-006 — Monthly Attendance Report Export
+
+**User:** Principal
+**Priority:** P0
+
+**What it does**
+One-tap export of school-wide monthly attendance report.
+
+**Behaviour**
+- Select month and year
+- Generates PDF covering all classes, all students, all subjects
+- Format matches GMC official submission template
+- Generated in under 20 seconds
+- Download to device or share via standard Android share sheet
+
+---
+
+## F-PR-007 — Subject Performance Report
+
+**User:** Principal
+**Priority:** P1
+
+**What it does**
+Class-wise, subject-wise exam performance overview.
+
+**Behaviour**
+- Table: class vs subject showing class average
+- Highlights below 50% average in red
+- Drilldown to individual student marks
+- Select exam or date range
+- Export as PDF
+
+---
+
+## F-PR-008 — Teacher Portal Usage Report
+
+**User:** Principal
+**Priority:** P1
+
+**What it does**
+Shows which teachers are actively using the portal.
+
+**Behaviour**
+- Per teacher: last login, attendance submissions this month, materials uploaded, assignments created
+- Identifies teachers not using the system
+- Exportable as PDF
+
+---
+
+## F-PR-009 — School Announcement Publisher
+
+**User:** Principal
+**Priority:** P0
+
+**What it does**
+Principal posts announcements to entire school.
+
+**Behaviour**
+- Title and body fields
+- Checkbox: also send as SMS to parents
+- Emergency toggle: bypasses SMS weekly limit
+- Published immediately — visible on all student, teacher home screens
+- Announcement list with delete option
+
+---
+
+## F-PR-010 — Holiday Calendar Management
+
+**User:** Principal
+**Priority:** P1
+
+**What it does**
+Principal marks school holidays so timetables and attendance adjust automatically.
+
+**Behaviour**
+- Date picker to mark holiday
+- Reason field: holiday name
+- On holiday date: no attendance submission required from teachers
+- Students see holiday on timetable
+- Parents notified via SMS if holiday announced same day or next day
+
+---
+
+---
+
+# GMC Admin Features
+
+---
+
+## F-AD-001 — Add New School
+
+**User:** GMC Admin
+**Priority:** P0
+
+**What it does**
+Add a school to the platform.
+
+**Behaviour**
+- Form: school name, UDISE code (unique, validated), address, ward, principal contact number
+- UDISE code must be unique — duplicate rejected
+- School activates immediately on save
+- Principal receives SMS: "Your school [Name] has been added to GMC Education Portal. Your login: [ID]. Visit [URL] to set up."
+- School appears in all admin dashboards immediately
+
+---
+
+## F-AD-002 — Deactivate School
+
+**User:** GMC Admin
+**Priority:** P0
+
+**What it does**
+Deactivate a school without deleting data.
+
+**Behaviour**
+- Confirmation dialog with typed school name required
+- All active sessions terminated immediately
+- All user logins for that school blocked
+- Data preserved — accessible to GMC Admin in read-only mode
+- Reason field mandatory — logged in audit trail
+- Reactivation available — restores all accounts
+
+---
+
+## F-AD-003 — Bulk Student Import via CSV
+
+**User:** GMC Admin
+**Priority:** P0
+
+**What it does**
+Import thousands of students at once.
+
+**Behaviour**
+- Download CSV template button
+- Template columns: school UDISE, student name, roll number, class, section, parent mobile number
+- Upload validates: format, required fields, duplicate roll numbers
+- Preview: first 10 rows shown before processing
+- Row-level error report: "Row 47: Roll number already exists"
+- Successful rows processed even if some rows fail
+- On completion: accounts created, login SMS sent to parent numbers
+- Import report downloadable as CSV
+
+---
+
+## F-AD-004 — User Credential Reset
+
+**User:** GMC Admin
+**Priority:** P0
+
+**What it does**
+Reset any user's login anywhere in the district.
+
+**Behaviour**
+- Search by name, roll number, employee ID, or mobile number
+- Shows user details and school before resetting
+- Reset sends new credentials via SMS
+- Previous credentials invalidated immediately
+- Action logged: admin ID, user ID, timestamp
+
+---
+
+## F-AD-005 — Principal Reassignment
+
+**User:** GMC Admin
+**Priority:** P0
+
+**What it does**
+Assign new principal to a school.
+
+**Behaviour**
+- Select school, enter new principal employee ID
+- Previous principal account reverted to teacher role or deactivated
+- New principal notified via SMS
+- Transition logged with date and admin ID
+- Only one active principal per school at any time
+
+---
+
+## F-AD-006 — District Attendance Dashboard
+
+**User:** GMC Admin
+**Priority:** P0
+
+**What it does**
+Bird's eye view of attendance across all schools.
+
+**Behaviour**
+- Table or heatmap: all schools with current month attendance %
+- Filter by ward, school type, date range
+- Schools below 70%: flagged automatically
+- Click through to school detail
+- Refreshes every hour during school hours
+
+---
+
+## F-AD-007 — District Report Export
+
+**User:** GMC Admin
+**Priority:** P0
+
+**What it does**
+Official district-level report covering all schools.
+
+**Behaviour**
+- Select: month/year, report type (attendance / performance / usage)
+- Generates in under 30 seconds for up to 100 schools
+- Export as PDF and Excel
+- PDF format matches government reporting template
+- Excel includes raw data for further analysis
+
+---
+
+## F-AD-008 — Portal Adoption Metrics
+
+**User:** GMC Admin
+**Priority:** P1
+
+**What it does**
+Which schools are using the portal well and which are not.
+
+**Behaviour**
+- Per school: daily active users (teachers + students), attendance submission rate, materials uploaded this month, parent SMS delivery rate
+- Sortable by any metric
+- Schools below adoption threshold highlighted
+- Trend: this month vs last month
+
+---
+
+## F-AD-009 — District-Wide Announcement
+
+**User:** GMC Admin
+**Priority:** P1
+
+**What it does**
+Send one announcement to all schools or selected schools.
+
+**Behaviour**
+- Target: all schools or multi-select schools
+- Option to also SMS all registered parent numbers in selected schools
+- Delivery report: sent count, delivered count, failed count
+- Logged in audit trail
+
+---
+
+## F-AD-010 — Audit Log Viewer
+
+**User:** GMC Admin
+**Priority:** P0
+
+**What it does**
+Full log of all sensitive actions across the entire platform.
+
+**Behaviour**
+- Logs: login, logout, marks change, attendance edit, account lock, credential reset, school add/deactivate, bulk import, report export, announcement sent
+- Each log entry: user ID, role, school, action, timestamp, IP address
+- Filter by school, user, action type, date range
+- Non-editable — no delete or modify option
+- Export as CSV
+- Retained minimum 3 years
+- Accessible only to GMC Admin role
+
+---
+
+---
+
+# Offline Features
+
+---
+
+## F-OF-001 — Offline Data Cache on Login
+
+**User:** All
+**Priority:** P0
+
+**What it does**
+On every login with internet, essential data cached locally for offline use.
+
+**What gets cached per user**
+- Student: timetable, downloaded materials, pending assignments, last known attendance and marks
+- Teacher: class list, today's attendance status, pending submissions list
+- Parent: child's attendance and marks (last 30 days)
+- Principal: school attendance summary, pending approvals
+
+---
+
+## F-OF-002 — Background Sync on Reconnect
+
+**User:** All
+**Priority:** P0
+
+**What it does**
+When internet returns, all pending actions sync automatically without user doing anything.
+
+**Behaviour**
+- Monitors connectivity in background
+- On reconnect: upload queued attendance, submissions, grade entries
+- Download: new materials, new assignments, updated marks
+- Sync completes silently — no interruption to user
+- On sync complete: brief toast message "Data updated"
+
+---
+
+## F-OF-003 — Sync Status Indicator
+
+**User:** All
+**Priority:** P0
+
+**What it does**
+User always knows if their data is current or pending sync.
+
+**Behaviour**
+- Icon in top bar: green checkmark (synced), orange clock (pending), red exclamation (sync failed)
+- Tapping icon shows detail: "3 items waiting to sync. Last synced: 2 hours ago"
+- Manual sync button in detail panel
+
+---
+
+## F-OF-004 — Conflict Resolution on Sync
+
+**User:** Teacher / Student
+**Priority:** P0
+
+**What it does**
+Handles the case where the same data was changed in two places.
+
+**Rules**
+- Attendance: server version wins if teacher submitted from two devices
+- Assignment submission: first received by server wins, duplicate rejected silently
+- Marks entry: last write wins, both versions logged in audit trail
+- Material upload: both versions kept, teacher shown "Duplicate upload detected"
+
+---
+
+## F-OF-005 — Storage Management Warning
+
+**User:** Student / Teacher
+**Priority:** P0
+
+**What it does**
+Prevents silent failure when device storage is full.
+
+**Behaviour**
+- Warning at 80% of app storage quota used
+- Hard stop with clear message at 95%: "Storage full. Delete files to continue."
+- Student: shows which downloaded files take the most space
+- Teacher: shows uploaded drafts taking space
+- Links directly to file management screen
+
+---
+
+*Offline features must be tested by turning on airplane mode mid-session and verifying all queued actions complete correctly after reconnection. This is not optional testing.*

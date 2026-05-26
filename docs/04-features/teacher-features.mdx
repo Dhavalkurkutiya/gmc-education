@@ -1,0 +1,260 @@
+# Teacher Features
+
+**Version:** 1.0
+**Last Updated:** May 2026
+
+---
+
+## F-TE-001 — One-Screen Attendance Marking
+
+**User:** Teacher
+**Priority:** P0
+
+**What it does**
+Teacher marks attendance for entire class in a single screen in under 2 minutes.
+
+**Behaviour**
+- Home screen shows today's pending classes prominently
+- Tapping a class opens full student list
+- Default state: all students marked Present
+- Single tap toggles to Absent
+- "Mark all Present" button at top
+- Student photos shown if available — helps identify students
+- Submit button at bottom — one tap to save
+- Cannot submit future attendance — only current or past dates
+- Cannot re-submit same class same day unless edit approval granted
+
+**Performance requirement**
+- Screen must load full 40-student list in under 2 seconds on 3G
+
+---
+
+## F-TE-002 — Offline Attendance Sync
+
+**User:** Teacher
+**Priority:** P0
+
+**What it does**
+Attendance marked offline syncs automatically when internet returns.
+
+**Behaviour**
+- Attendance saved locally immediately on submit
+- Sync status icon in top bar: synced, pending, failed
+- Auto-sync triggered when internet detected
+- If sync fails 3 times: alert shown, option to retry manually
+- Offline attendance treated as valid — timestamp of local save recorded
+- Conflict: if same student's attendance marked twice (duplicate sync), later timestamp wins, flagged in audit log
+
+---
+
+## F-TE-003 — Attendance Edit with Approval
+
+**User:** Teacher
+**Priority:** P0
+
+**What it does**
+Teacher can correct a mistake within 24 hours. After 24 hours, requires principal approval.
+
+**Behaviour**
+- Within 24 hours: edit directly, change logged automatically
+- After 24 hours: submit edit request with mandatory reason field
+- Request goes to principal (F-PR-004)
+- Teacher sees pending/approved/rejected status on request
+- Rejected requests: principal's reason shown to teacher
+
+---
+
+## F-TE-004 — Low Attendance Student List
+
+**User:** Teacher
+**Priority:** P1
+
+**What it does**
+Quick list of students at risk in teacher's class.
+
+**Behaviour**
+- Filterable by: below 75%, below 65%, below 50%
+- Shows student name, current %, days absent this month
+- One-tap option to flag student — triggers parent SMS alert
+- Exportable as PDF for teacher records
+
+---
+
+## F-TE-005 — Material Upload — PDF and Image
+
+**User:** Teacher
+**Priority:** P0
+
+**What it does**
+Teacher uploads study materials that appear in student library.
+
+**Behaviour**
+- Upload from phone gallery or file storage
+- Supported formats: PDF, JPG, PNG
+- Max file size: 25MB per file
+- Title and subject required before upload
+- Upload progress shown with percentage
+- Background upload: teacher can navigate away while uploading
+- Retry on failure — upload resumes from where it stopped if interrupted
+- Uploaded file immediately visible in student library after processing
+
+---
+
+## F-TE-006 — Subject and Chapter Tagging
+
+**User:** Teacher
+**Priority:** P0
+
+**What it does**
+Materials tagged with subject and chapter so students find them easily.
+
+**Behaviour**
+- Subject: dropdown from teacher's assigned subjects only
+- Chapter: free text field, max 50 characters
+- Both required at upload
+- Tags editable after upload
+- Students can filter library by subject and chapter
+
+---
+
+## F-TE-007 — Material Delete and Replace
+
+**User:** Teacher
+**Priority:** P1
+
+**What it does**
+Teacher removes incorrect material or replaces with updated version.
+
+**Behaviour**
+- Delete: confirmation required, material removed from student library
+- Students who downloaded the file: file remains on their device, marked "Removed by teacher"
+- Replace: upload new file linked to same title, old version archived
+- Students who downloaded old version: see "Updated version available" notification
+
+---
+
+## F-TE-008 — Assignment Creator
+
+**User:** Teacher
+**Priority:** P0
+
+**What it does**
+Teacher creates assignments with clear instructions and deadlines.
+
+**Behaviour**
+- Fields: title (required), description (required), subject (required), class (required), due date and time (required)
+- Optional: attach a reference file (PDF or image)
+- Preview before publishing
+- Publish immediately or schedule for later
+- Visible only to correct class — not other classes
+- Edit allowed before any student submits
+- Cannot delete after first submission received — only hide
+
+---
+
+## F-TE-009 — Submission Tracker
+
+**User:** Teacher
+**Priority:** P0
+
+**What it does**
+Teacher sees who has submitted and who has not.
+
+**Behaviour**
+- List of all students with status: Submitted, Not Submitted, Late
+- Submitted entries show timestamp
+- Late submissions highlighted in amber
+- Filter by status
+- Counter at top: "28 of 40 submitted"
+- Reminder option: send push notification to non-submitters (max once per assignment)
+
+---
+
+## F-TE-010 — In-App Submission Viewer
+
+**User:** Teacher
+**Priority:** P0
+
+**What it does**
+Teacher opens and reviews student submissions on phone.
+
+**Behaviour**
+- PDF and image both open in-app
+- Pinch to zoom on images
+- Swipe between pages on PDF
+- Navigation arrows to go to next/previous student submission
+- Grade entry accessible directly from viewer (F-TE-011)
+
+---
+
+## F-TE-011 — Grade and Feedback Entry
+
+**User:** Teacher
+**Priority:** P0
+
+**What it does**
+Teacher assigns a numeric grade and written feedback to each submission.
+
+**Behaviour**
+- Grade field: numeric, validates against max marks set at assignment creation
+- Feedback: text field, max 500 characters, optional
+- Save button — grade stored immediately
+- Student and parent notified when grade saved
+- Cannot grade unsubmitted work
+- Grade editable until teacher locks it or next assignment published
+
+---
+
+## F-TE-012 — Exam Marks Entry
+
+**User:** Teacher
+**Priority:** P0
+
+**What it does**
+Teacher enters marks for all students after an exam.
+
+**Behaviour**
+- Select exam name, subject, date, and maximum marks
+- Full class list with numeric input per student
+- Validates: marks cannot exceed maximum, cannot be negative
+- Absent students: option to mark as "Absent" instead of zero
+- Save as draft — editable before publishing
+- Publish: marks become visible to students and parents
+- Confirmation dialog before publishing — "Once published, editing requires principal approval"
+
+---
+
+## F-TE-013 — Marks Edit with Approval
+
+**User:** Teacher
+**Priority:** P1
+
+**What it does**
+Correction to published marks goes through principal.
+
+**Behaviour**
+- Same flow as attendance edit approval (F-TE-003)
+- Reason mandatory
+- Original value and new value both shown in approval request
+- Audit trail updated on approval
+
+---
+
+## F-TE-014 — Class Report — Attendance and Marks
+
+**User:** Teacher
+**Priority:** P1
+
+**What it does**
+Single report combining attendance and performance for teacher's class.
+
+**Behaviour**
+- Table: each student, attendance %, average marks, pending assignments count
+- Sort by any column
+- Filter: show only students below threshold
+- Export as PDF — one tap
+- Date range selector for marks (this month, this term, custom)
+
+---
+
+*Teacher daily workflow target: Attendance + one upload + check submissions = under 10 minutes total. If testing shows this exceeds 10 minutes, priority flows must be redesigned.*

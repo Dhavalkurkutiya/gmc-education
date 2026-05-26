@@ -1,0 +1,141 @@
+# Parent User Stories
+
+**Version:** 1.0
+**Last Updated:** May 2026
+**Total Stories:** 10
+
+---
+
+## Key Context
+
+Parents are the most tech-hesitant user group. Many will never open the app. Their primary touchpoint is SMS. Every story here must account for that reality — if it requires app navigation, it must also have an SMS fallback.
+
+---
+
+## SMS Alerts (Primary Channel)
+
+---
+
+**PA-001**
+| Field | Detail |
+|---|---|
+| As a | Parent |
+| I want to | Receive an SMS when my child is marked absent |
+| So that | I know immediately and can take action the same day |
+| Priority | Critical |
+| Acceptance | SMS sent within 30 minutes of attendance being marked. Message in Gujarati. Includes child name, class, and date. Delivered even without app installed. |
+
+---
+
+**PA-002**
+| Field | Detail |
+|---|---|
+| As a | Parent |
+| I want to | Receive an SMS when my child's exam marks are published |
+| So that | I know how my child performed without visiting school |
+| Priority | High |
+| Acceptance | SMS sent within 1 hour of teacher publishing marks. Includes subject name, marks obtained, and total marks. |
+
+---
+
+**PA-003**
+| Field | Detail |
+|---|---|
+| As a | Parent |
+| I want to | Receive an SMS for important school announcements |
+| So that | I do not miss holidays, events, or urgent notices |
+| Priority | High |
+| Acceptance | Principal or GMC marked announcements trigger SMS. Maximum 2 non-emergency SMS per week to avoid spam. Emergency alerts have no limit. |
+
+---
+
+**PA-004**
+| Field | Detail |
+|---|---|
+| As a | Parent |
+| I want to | Receive an SMS if my child's attendance falls below 75% |
+| So that | I get an early warning before it becomes a serious problem |
+| Priority | High |
+| Acceptance | Alert triggered when monthly attendance drops below 75%. Sent once per month per subject. Includes current percentage and minimum required. |
+
+---
+
+## App Access (Secondary Channel)
+
+---
+
+**PA-005**
+| Field | Detail |
+|---|---|
+| As a | Parent |
+| I want to | Log in to the app with my registered mobile number and OTP |
+| So that | I do not need a separate username or password to remember |
+| Priority | High |
+| Acceptance | OTP login only — no password. OTP valid for 10 minutes. Login links parent account to child automatically. |
+
+---
+
+**PA-006**
+| Field | Detail |
+|---|---|
+| As a | Parent |
+| I want to | See my child's attendance for the current month |
+| So that | I have a full picture beyond just absence alerts |
+| Priority | High |
+| Acceptance | Calendar view showing present, absent, and holiday for each day. Subject-wise percentage shown below. Loads from cache if offline. |
+
+---
+
+**PA-007**
+| Field | Detail |
+|---|---|
+| As a | Parent |
+| I want to | See all my child's marks in one place |
+| So that | I can track performance across subjects over time |
+| Priority | High |
+| Acceptance | Marks listed by exam and subject. Shows date of exam. Simple pass or fail indicator. No complex graphs — just numbers. |
+
+---
+
+**PA-008**
+| Field | Detail |
+|---|---|
+| As a | Parent |
+| I want to | See school announcements and holiday notices in the app |
+| So that | I can plan accordingly even if I missed the SMS |
+| Priority | Medium |
+| Acceptance | Announcements listed newest first. Unread ones highlighted. In Gujarati. |
+
+---
+
+## Multi-Child Support
+
+---
+
+**PA-009**
+| Field | Detail |
+|---|---|
+| As a | Parent |
+| I want to | Switch between my two children's profiles in the same app |
+| So that | I do not need two separate logins for two children in the same school |
+| Priority | Medium |
+| Acceptance | One parent account can be linked to multiple children. Simple switcher on home screen. SMS alerts include child name to distinguish. |
+
+---
+
+## Privacy & Control
+
+---
+
+**PA-010**
+| Field | Detail |
+|---|---|
+| As a | Parent |
+| I want to | Opt out of non-critical SMS alerts |
+| So that | I am not overwhelmed with messages if I check the app regularly |
+| Priority | Low |
+| Acceptance | Settings allow turning off announcement SMS. Absence and low attendance alerts cannot be turned off — they are critical. Option available in app and by sending SMS reply STOP to the portal number. |
+
+---
+
+_Parent flows must be tested with users who have never used an education app before. If a parent cannot complete a task in under 3 taps without guidance, the UI must be simplified._

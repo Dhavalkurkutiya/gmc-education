@@ -1,0 +1,151 @@
+# GMC Education Portal — Product Vision
+
+**Version:** 1.0  
+**Last Updated:** May 2026  
+**Owner:** GMC Product Team
+
+---
+
+## 1. Vision Statement
+
+> To give every government school student in Gandhinagar a reliable, simple, and fair digital learning experience — regardless of their phone, their internet connection, or their family's literacy level.
+
+---
+
+## 2. Problem Statement
+
+Today, government schools in Gandhinagar face these real problems:
+
+| Problem                                                                  | Who Suffers |
+| ------------------------------------------------------------------------ | ----------- |
+| Homework and notes shared informally on WhatsApp — easy to miss          | Students    |
+| Parents have no way to check attendance or marks without visiting school | Parents     |
+| Teachers maintain registers manually — slow, error-prone, easy to lose   | Teachers    |
+| Principals have no real-time view of what is happening across classrooms | Principals  |
+| GMC has no data on which schools are performing, which are struggling    | GMC Admins  |
+| Students with no internet at home fall behind completely                 | Students    |
+
+This is not a technology problem. This is an equity problem. A student with a working smartphone and home Wi-Fi gets more than a student without. This portal exists to close that gap.
+
+---
+
+## 3. Goals
+
+### Short Term — 0 to 6 Months
+
+- Launch in 10 pilot schools in Gandhinagar
+- Students can log in, view timetable, download notes offline
+- Teachers can upload materials and mark attendance digitally
+- Parents receive SMS alerts for attendance and marks
+- Principals can view school-level reports
+
+### Medium Term — 6 to 18 Months
+
+- Expand to 50+ schools
+- Assignments — upload, submit, grade — fully digital
+- Gujarati language support across all screens
+- Parent mobile app (lightweight, works on 2G)
+
+### Long Term — 18 Months to 3 Years
+
+- 100+ schools, 50,000+ students on the platform
+- AI-based early warning system — flag students falling behind
+- Integration with Gujarat state education board data
+- Offline-first progressive web app for zero-install access
+
+---
+
+## 4. Success Metrics
+
+These are the numbers that tell us whether this product is working.
+
+| Metric                                        | Target                       |
+| --------------------------------------------- | ---------------------------- |
+| Monthly active students (login at least once) | 80% of enrolled students     |
+| Teacher attendance upload within 24 hours     | 95% of school days           |
+| Parent SMS delivery rate                      | 95%+                         |
+| App crash rate on low-end Android devices     | Less than 1%                 |
+| Average page load time on 3G connection       | Under 3 seconds              |
+| Offline content availability when no internet | 100% of downloaded materials |
+| Teacher satisfaction score (quarterly survey) | 4 out of 5 or higher         |
+| Support tickets per 100 users per month       | Less than 2                  |
+
+---
+
+## 5. Constraints
+
+These are facts we cannot change. Every design and engineering decision must respect them.
+
+**Device Constraints**
+
+- Many students use low-end Android phones (2GB RAM, Android 8 or older)
+- App size must stay under 20MB for initial install
+- No assumption of a camera, no assumption of a fast processor
+
+**Connectivity Constraints**
+
+- Internet is unreliable in many areas — 2G, 3G, or none
+- Core features must work fully offline
+- Sync must happen automatically when internet is available, without user action
+
+**User Constraints**
+
+- Students, parents, and many teachers are first-time digital tool users
+- UI must be in Gujarati with simple icons — no assumption of English literacy
+- Onboarding must work without reading a manual
+
+**Data and Legal Constraints**
+
+- All data is government data — subject to India's DPDP Act 2023
+- No student data can leave Indian servers
+- No third-party analytics or advertising SDKs allowed
+- Biometric or sensitive personal data must not be collected without explicit mandate
+
+**Scale Constraints**
+
+- Must support 100+ schools and 50,000+ students without performance degradation
+- Must handle exam season traffic spikes — 10x normal load
+
+---
+
+## 6. Out of Scope
+
+The following are explicitly NOT part of this product. Any request to add these must go through a formal change process.
+
+- Paid courses or premium content tiers
+- Third-party advertisements of any kind
+- National board or CBSE/GSEB direct integration (Phase 1)
+- Video calling or live class features (Phase 1)
+- Student social features — no messaging between students
+- Hardware procurement (tablets, devices for schools)
+- Teacher payroll or HR management
+- Any AI-generated content shown directly to students without teacher review
+
+---
+
+## 7. Assumptions
+
+These are things we believe to be true today. If any assumption turns out to be wrong, the team must be notified immediately and the plan must be reviewed.
+
+- GMC will provide and maintain a reliable server infrastructure hosted in India
+- Each school has at least one teacher who can operate a smartphone confidently
+- GMC has an active SMS gateway contract with sufficient volume for alerts
+- School enrollment data (student names, classes, roll numbers) will be provided by GMC in a standard format before launch
+- Each student or family has access to at least one Android smartphone
+- Schools will nominate a single point of contact (coordinator) to handle onboarding issues
+- GMC legal team will review and approve the privacy policy before launch
+
+---
+
+## 8. Risks at Vision Level
+
+These are the top risks that could stop this product from achieving its vision. They are documented here so leadership is aware from day one.
+
+| Risk                                         | Likelihood | Impact   | Mitigation                                              |
+| -------------------------------------------- | ---------- | -------- | ------------------------------------------------------- |
+| Low adoption — teachers resist digital shift | High       | High     | In-school training, simple UI, principal accountability |
+| Poor internet makes sync unreliable          | High       | High     | Offline-first architecture, aggressive caching          |
+| Data breach of student records               | Medium     | Critical | Encryption at rest and transit, regular audits          |
+| Scope creep from GMC officials               | High       | Medium   | This vision document, formal change request process     |
+| Low-end devices cannot run the app           | Medium     | High     | Performance budget enforced from day one                |
+| SMS gateway failures during critical alerts  | Medium     | High     | Fallback to in-app notification + delivery retry queue  |

@@ -1,0 +1,243 @@
+# Offline Strategy — GMC Education Portal
+
+**Document ID:** OFF-07  
+**Last Updated:** 2026  
+**Owner:** Tech Lead + Backend Dev  
+**Priority:** P0 — Critical for launch
+
+---
+
+## 1. Why Offline Is Non-Negotiable
+
+Government school students in Gandhinagar face these real conditions:
+
+- Mobile data recharges last 5-15 days per month — not 30
+- Home WiFi: rare or non-existent in low-income households
+- School WiFi: inconsistent, shared by 500+ students
+- Network type: 2G or weak 3G is common outside city centre
+- Shared phones: app may be used only during specific hours
+
+If the app requires internet for every action, it will be used by less than 30% of students. Offline-first is not a feature — it is the product.
+
+---
+
+## 2. Offline Architecture: What Works Without Internet
+
+### Fully Available Offline (after first sync)
+
+| Feature | Offline Behaviour |
+|---|---|
+| View downloaded notes and PDFs | ✅ Full access |
+| View timetable | ✅ Full access |
+| View marks and progress | ✅ Last synced data shown |
+| View submitted assignments | ✅ Shows submission status |
+| Submit new assignment | ✅ Queued — syncs when online |
+| Mark reading progress on materials | ✅ Queued sync |
+| View homework list | ✅ Last synced list |
+
+### Requires Internet
+
+| Feature | Why Offline Not Possible |
+|---|---|
+| First-time login | Auth token requires server verification |
+| Download new materials | Fetching from server |
+| Receive new assignments | Push from server |
+| View real-time attendance | Live data |
+| Parent SMS alerts | Server-side trigger |
+
+### Teacher Offline Capabilities
+
+| Feature | Offline Behaviour |
+|---|---|
+| Mark attendance | ✅ Saved locally — syncs when online |
+| View class list | ✅ Last synced |
+| Grade assignments | ✅ Queued |
+| Upload new materials | ❌ Requires internet |
+| View submitted assignments | ✅ Already downloaded |
+
+---
+
+## 3. Sync Architecture
+
+### Sync Flow
+
+```
+App Launch
+    ↓
+Check Network
+    ↓
+If Online → Full Sync (delta only — only changed data since last sync)
+If Offline → Load from local DB → Show offline indicator
+    ↓
+During Session (if online)
+    → Background sync every 15 minutes
+    → Push notifications trigger immediate sync
+    ↓
+On Action (e.g., attendance submission)
+    → If online: immediate API call
+    → If offline: write to local queue with timestamp
+    ↓
+Network Restored
+    → Process offline queue in order
+    → Conflict resolution applied
+    → Confirmation sent to user
+```
+
+### Delta Sync Strategy
+
+Full sync on first login — download all content for student's class and subjects.
+
+After that, delta sync — only data changed since `last_sync_timestamp`.
+
+```
+GET /api/sync?since=2026-03-15T09:00:00Z
+Returns: { newMaterials: [...], updatedMarks: [...], newAssignments: [...] }
+```
+
+This keeps data usage minimal — not re-downloading everything on every open.
+
+---
+
+## 4. Offline Queue Design
+
+Every action taken offline is stored in a local queue table.
+
+### Queue Record Structure
+
+```
+id              : local UUID
+action_type     : ATTENDANCE_SUBMIT | ASSIGNMENT_SUBMIT | MARKS_SAVE | PROGRESS_UPDATE
+payload         : JSON of the action data
+created_at      : timestamp when action taken offline
+status          : PENDING | SYNCING | COMPLETED | FAILED | CONFLICT
+retry_count     : 0
+last_error      : null
+```
+
+### Queue Processing Rules
+
+- Queue processed in `created_at` order — oldest first
+- If one item fails: log error, continue with next (don't block entire queue)
+- After 3 failed retries: mark as FAILED, notify user to take action manually
+- Queue displayed in app: "3 actions pending sync"
+- Maximum queue age: 7 days — after 7 days, PENDING items shown as warning to user
+
+### Conflict Resolution Policy
+
+| Action Type | Conflict Rule |
+|---|---|
+| Attendance | Server wins — if already submitted online, offline version discarded, user notified |
+| Assignment submission | Student's offline version accepted if within grace period (2 hours post-deadline) |
+| Marks entry by teacher | Last-write-wins with notification — "Your marks were updated by Principal. View changes." |
+| Progress tracking | Merge — take highest progress point |
+
+---
+
+## 5. Local Database Design
+
+Technology choice: **SQLite with SQLCipher encryption**
+
+All local data encrypted. Encryption key derived from user PIN + device fingerprint. Key wiped on logout.
+
+### Tables Stored Locally
+
+```
+local_students          — student's own profile data
+local_timetable         — weekly timetable
+local_materials         — downloaded file metadata (not file itself — file in local file storage)
+local_assignments       — assignment list and details
+local_submissions       — student's own submissions
+local_marks             — student's own marks (all subjects)
+local_attendance        — student's attendance records
+offline_queue           — pending sync actions
+sync_metadata           — last_sync_timestamp per data type
+```
+
+### Files Storage
+
+Downloaded PDF/image files stored in app's private file directory — not in shared storage.
+
+Path: `Android/data/in.gmc.eduportal/files/materials/{subjectId}/{fileId}.pdf`
+
+Each file tracked in `local_materials` table — if file deleted from phone, entry removed, re-download prompted.
+
+---
+
+## 6. Storage Management on Low-End Phones
+
+Low-end phones (Redmi, Samsung A03) typically have 16-32GB storage — but after OS and apps, usable free space may be 2-4GB.
+
+### Download Policy
+
+- Student chooses what to download — no auto-download of all materials
+- Before download: show file size, available storage
+- Warning at 500MB used by app
+- Blocking warning at 1GB used: "Your storage is almost full. Delete old materials to continue."
+
+### Auto-Cleanup Rules
+
+- Materials older than 6 months and not accessed in 90 days: prompt to delete
+- Completed assignment submissions: delete local copy after sync confirmed
+- Failed uploads: auto-delete after 7 days, notify user
+
+### Storage Usage Screen (in Settings)
+
+Shows:
+- Total used by app
+- Breakdown by subject
+- Files downloaded with size
+- One-tap "Clear old materials" button
+
+---
+
+## 7. Offline Indicator UX
+
+Users who are not tech-literate need clear, non-technical communication about offline state.
+
+### Offline State Indicators
+
+- Small banner at top of every screen: "You are offline. Viewing saved data."
+- Gujarati translation: "તમે ઑફલાઇન છો. સાચવેલ ડેટા જોઈ રહ્યા છો."
+- Syncing indicator: spinning icon + "Syncing..." when online and actively syncing
+- Pending actions badge: "3 actions waiting to sync" on home screen
+
+### Offline-Capable vs Online-Only Actions
+
+- Online-only buttons greyed out when offline — not hidden, just disabled with tooltip
+- Tooltip: "Internet needed for this action"
+- Never show a blank screen — always show last known data with timestamp: "Last updated: Yesterday 4:30 PM"
+
+---
+
+## 8. First-Time Setup (Requires Internet)
+
+This happens exactly once per device per user.
+
+Steps:
+1. Login (internet required — token generation)
+2. Initial full sync — download all relevant data for user's role/class/school
+3. Download required materials if student chooses to
+4. From this point: fully offline capable
+
+Expected initial sync size:
+- Student: approx 2-5MB metadata (no files unless manually downloaded)
+- Teacher: approx 5-10MB (class lists, timetable, assignment list)
+
+Initial sync progress shown: "Setting up your account... 60% complete"
+
+---
+
+## 9. Testing Requirements for Offline Mode
+
+Every feature must be tested in these network conditions before release:
+
+| Condition | How to Test |
+|---|---|
+| Complete offline | Airplane mode throughout |
+| Online → offline mid-action | Toggle airplane mode during form submission |
+| Offline → online (queue sync) | Submit actions offline, then reconnect |
+| Slow 2G (50kbps) | Use Android developer options network throttling |
+| Intermittent (drops every 30s) | Use network throttling or actual 2G SIM |
+| Storage full | Fill phone storage to 95% and test downloads |
+
+All 6 conditions must pass QA sign-off before any release.

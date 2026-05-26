@@ -1,0 +1,199 @@
+# Network & Offline Edge Cases — GMC Education Portal
+
+**Document ID:** EC-05-NET  
+**Category:** Network & Offline  
+**Last Updated:** 2026  
+**Owner:** Tech Lead + Backend Dev
+
+---
+
+## EC-NET-001: Student Opens App With Zero Internet — First Time Ever
+
+**Scenario:** Student installs app but has never logged in even once. Opens app with no internet.
+
+**What breaks if ignored:** Login screen tries to hit server. Fails. No error message shown or unhelpful generic error. Student thinks app is broken.
+
+**Recommended Fix:**
+- First login always requires internet — clearly communicate this
+- Show friendly screen: "Internet needed for first-time setup. Connect to WiFi or mobile data once."
+- After first login, all subsequent usage can be offline
+
+---
+
+## EC-NET-002: Sync Starts Mid-Upload — Internet Drops
+
+**Scenario:** Teacher is uploading a 10MB PDF. Network drops at 60% upload.
+
+**What breaks if ignored:** Partial file saved on server. Student downloads corrupted PDF. Cannot open it. No error shown.
+
+**Recommended Fix:**
+- Chunked upload with resume support
+- File marked as UPLOAD_COMPLETE only after server receives full file and checksum validated
+- Incomplete uploads auto-deleted after 24 hours
+- Teacher sees "Upload incomplete — tap to resume" notification
+
+---
+
+## EC-NET-003: Offline Data Conflict — Same Record Edited Online and Offline
+
+**Scenario:** Teacher marks attendance offline for Class 7A at 9 AM. Principal edits same attendance record online at 9:30 AM (correction). Teacher's phone syncs at 11 AM.
+
+**What breaks if ignored:** Teacher's offline edit overwrites Principal's correction. Wrong attendance in system. Last-write-wins silently.
+
+**Recommended Fix:**
+- Conflict resolution policy: server version wins for attendance (authoritative)
+- Teacher shown conflict notification: "Attendance for Class 7A was already updated by [Principal Name]. View changes?"
+- Both versions stored in audit log
+
+---
+
+## EC-NET-004: Student Downloads All Notes — Storage Full
+
+**Scenario:** Student tries to download entire Class 8 library. Phone has only 200MB free. Downloads fill storage. Phone becomes unresponsive.
+
+**What breaks if ignored:** Phone freezes. App crashes. Other apps also stop working. Student blames the portal.
+
+**Recommended Fix:**
+- Check available storage before each download
+- Show storage usage: "This download needs 150MB. You have 200MB free."
+- Warn when storage drops below 100MB
+- Allow selective download — chapter by chapter, not full library at once
+
+---
+
+## EC-NET-005: Background Sync Drains Mobile Data
+
+**Scenario:** Student is on 1GB/month mobile plan. App syncs all new content in background — 300MB in one night.
+
+**What breaks if ignored:** Student's monthly data exhausted in days. Family angry. Student uninstalls app.
+
+**Recommended Fix:**
+- Background sync only on WiFi by default
+- User can enable "Sync on mobile data" manually
+- Show data usage in app settings: "App has used 45MB this month"
+- Critical notifications (SMS-based) never depend on app background sync
+
+---
+
+## EC-NET-006: Time-Sensitive Action Done Offline — Queued But Never Synced
+
+**Scenario:** Student submits assignment offline 1 hour before deadline. Phone never gets internet. Queue never syncs. Deadline passes.
+
+**What breaks if ignored:** Student believes assignment submitted. Teacher never receives it. Student marked absent/failed for that assignment.
+
+**Recommended Fix:**
+- Offline submission gets timestamp of when student submitted
+- System accepts offline submissions if sync happens within grace period (e.g., 2 hours post-deadline)
+- Student shown persistent warning: "Submission saved offline. Connect to internet to complete submission."
+- Teacher dashboard shows "X submissions pending sync"
+
+---
+
+## EC-NET-007: Server Comes Back After Long Downtime — Mass Sync Storm
+
+**Scenario:** Server was down for 4 hours. 5,000 devices reconnect simultaneously. All try to sync at once.
+
+**What breaks if ignored:** Server overwhelmed. Crashes again. Creates sync loop. All data corrupted or lost.
+
+**Recommended Fix:**
+- Exponential backoff with jitter on reconnect — devices don't all retry at same second
+- Sync queue prioritization: attendance first, then assignments, then library downloads
+- Server-side rate limiting per device
+- Health check endpoint returns "DEGRADED" status — devices wait before full sync
+
+---
+
+## EC-NET-008: App Used in Airplane Mode Intentionally (Low Battery, No SIM)
+
+**Scenario:** Student has no SIM card or data plan. Uses only WiFi at school. Studies at home in airplane mode to save battery.
+
+**What breaks if ignored:** If offline mode poorly implemented, student sees empty screens, errors, or stale data.
+
+**Recommended Fix:**
+- Full offline mode: all downloaded content accessible with zero network
+- Clear "Offline Mode" indicator in UI
+- Timetable, downloaded notes, submitted assignments — all visible offline
+- Sync queue shows pending items clearly
+
+---
+
+## EC-NET-009: Intermittent Network — Request Sent Twice (Duplicate Submissions)
+
+**Scenario:** Student taps "Submit Assignment." Network is slow. Request sent but response not received. Student taps again. Two submissions created.
+
+**What breaks if ignored:** Duplicate assignment submissions. Teacher confused. Grading system may error. Student may be penalized.
+
+**Recommended Fix:**
+- Idempotency keys on all submission endpoints
+- Frontend disables submit button immediately on first tap
+- Server checks: if same student + same assignment already submitted, return existing record, not error
+- UI shows "Submitting..." spinner, not a button
+
+---
+
+## EC-NET-010: Network Available But DNS Fails
+
+**Scenario:** Student's phone shows "Connected to WiFi" but school router has no DNS. App cannot reach server even though "internet is on."
+
+**What breaks if ignored:** App shows generic "No internet" error. Student is confused — WiFi bars are full. Cannot debug.
+
+**Recommended Fix:**
+- Network check should ping actual API server, not just check connectivity flag
+- Error message: "WiFi connected but cannot reach server. Try mobile data or contact school."
+- Fallback to cached offline content automatically
+
+---
+
+## EC-NET-011: Sync Corrupts Local Database
+
+**Scenario:** Partial sync received — some records updated, some not. Local SQLite database ends up in inconsistent state.
+
+**What breaks if ignored:** App crashes on launch. Student loses all offline data. Must reinstall and re-download everything.
+
+**Recommended Fix:**
+- All sync operations wrapped in database transactions — either full sync completes or nothing changes
+- Daily local database integrity check
+- Backup of last known good state kept — rollback if sync corrupts DB
+- "Repair data" option in app settings that re-downloads from server
+
+---
+
+## EC-NET-012: Large School With 800 Students — Initial Data Load Too Slow
+
+**Scenario:** Principal opens dashboard for first time. App tries to load all 800 students' data at once.
+
+**What breaks if ignored:** App hangs for 30+ seconds. Principal thinks it crashed. Force-closes it. Never uses it.
+
+**Recommended Fix:**
+- Pagination on all list views — load 20 records at a time
+- Search-first approach for large lists
+- Progressive loading: show first 20 students in 1 second, load rest in background
+- Dashboard shows aggregated numbers (counts, averages), not raw records
+
+---
+
+## EC-NET-013: Offline Queue Grows Too Large — Device Memory Issue
+
+**Scenario:** Teacher marks attendance offline every day for 2 weeks without syncing. Queue has 14 days × 40 students = 560 pending records.
+
+**What breaks if ignored:** Offline queue consumes too much memory. App slows down. Queue may corrupt. 2 weeks of attendance lost.
+
+**Recommended Fix:**
+- Show warning after 3 days without sync: "You have 120 unsynced records. Connect to internet soon."
+- After 7 days: warning becomes blocking — "Please sync before continuing to add new records."
+- Queue size limit: 1000 records max before blocking new entries
+
+---
+
+## EC-NET-014: Push Notification Service Down — Parent Misses Critical Alert
+
+**Scenario:** Firebase or SMS gateway down for 2 hours. Parent doesn't receive "Child absent today" alert.
+
+**What breaks if ignored:** Parent unaware of absence. Child may have bunked school. No action taken.
+
+**Recommended Fix:**
+- SMS as primary channel — not app push notification
+- App push notification as supplementary only
+- Retry failed SMS up to 3 times with 30-min intervals
+- Alert delivery status tracked in dashboard — Principal can see "128 alerts delivered, 3 failed"
+- Failed alerts shown in Parent's app next time they open it

@@ -1,0 +1,191 @@
+# GMC Education Portal — Stakeholders
+
+**Version:** 1.0
+**Last Updated:** May 2026
+**Owner:** GMC Product Team
+
+---
+
+## Overview
+
+Five types of people use this portal. Every design decision, every feature, every alert — must be tested against at least one of these five. If a feature does not serve any of them, it should not be built.
+
+---
+
+## 1. Student
+
+**Who they are**
+
+- Class 6 to 10, age 11 to 16
+- Government school enrolled, Gandhinagar
+- Mix of Gujarati and Hindi speakers, little to no English
+- Many are first-time smartphone users
+
+**What they need from this portal**
+
+- Download notes and study materials offline
+- See their timetable for the day
+- Submit assignments and see grades
+- Track their own attendance and progress
+
+**Their device reality**
+
+- Low-end Android phone — shared with family in many cases
+- 2GB RAM or less, Android 8 or older
+- Mobile data — 2G or 3G, prepaid with limited balance
+- No reliable home Wi-Fi
+
+**Their biggest risk**
+If the app is heavy, slow, or confusing — they will never open it a second time. First experience must work perfectly even on the worst device.
+
+**Success looks like**
+A student opens the app Sunday night, downloads next week's notes, and studies the next morning on the bus — no internet needed.
+
+---
+
+## 2. Parent
+
+**Who they are**
+
+- Age 30 to 55
+- Gujarati medium, semi-literate in technology
+- Many have recently got their first smartphone
+- Working parents — limited time to engage with school
+
+**What they need from this portal**
+
+- SMS alert when child is absent
+- View marks after exams
+- Receive important school announcements
+- No need to visit school for basic information
+
+**Their device reality**
+
+- Basic Android smartphone, sometimes a feature phone
+- Prefers SMS over app — does not want to install anything
+- Will not troubleshoot login issues on their own
+
+**Their biggest risk**
+If SMS fails or is delayed — parent finds out about absence days later. Trust in the system breaks immediately and permanently.
+
+**Success looks like**
+A parent gets an SMS at 9:30 AM that their child was marked absent. They call the child. Issue resolved same day.
+
+---
+
+## 3. Teacher
+
+**Who they are**
+
+- Government school teacher, age 28 to 55
+- Subject teachers and class teachers both
+- Mixed comfort with technology — some confident, many hesitant
+- Already carrying a heavy workload
+
+**What they need from this portal**
+
+- Mark attendance quickly — under 2 minutes per class
+- Upload notes and assignments without technical steps
+- Enter grades after exams
+- See which students are falling behind
+
+**Their device reality**
+
+- School may provide a tablet or they use personal Android phone
+- Moderate internet at school — sometimes Wi-Fi, sometimes mobile data
+- Not willing to learn complicated workflows
+
+**Their biggest risk**
+If the portal takes longer than their current paper method — they will abandon it and go back to WhatsApp and registers. Adoption dies with one bad experience.
+
+**Success looks like**
+A teacher opens the app, marks attendance for 40 students in 90 seconds, uploads today's notes as a PDF, and closes the app. Total time: 4 minutes.
+
+---
+
+## 4. School Principal
+
+**Who they are**
+
+- Head of school, administrative background
+- Responsible for compliance, reporting, staff management
+- Reports to GMC — needs to show data when asked
+- Age 40 to 58, moderate tech literacy
+
+**What they need from this portal**
+
+- Daily overview of attendance across all classes
+- Monthly reports for GMC submission
+- Flag students with poor attendance or failing grades
+- Confirmation that teachers are using the portal correctly
+
+**Their device reality**
+
+- Desktop or laptop at school, Android phone personally
+- Reasonable internet at school office
+- Prefers clean reports over raw data
+
+**Their biggest risk**
+If reports are inaccurate or hard to export — they will maintain a parallel paper system as backup. Double work, no trust in the portal.
+
+**Success looks like**
+A principal opens the dashboard Monday morning, sees last week's attendance summary for all 12 classes, exports a PDF, and emails it to GMC — in under 5 minutes.
+
+---
+
+## 5. GMC Admin
+
+**Who they are**
+
+- Government officer at Gandhinagar Municipal Corporation
+- Manages education policy across 100+ schools
+- Needs macro-level data — not classroom detail
+- High accountability — answers to elected officials
+
+**What they need from this portal**
+
+- Aggregate data across all schools — attendance, performance, portal usage
+- Ability to push announcements to all schools at once
+- Manage school list, add new schools, deactivate old ones
+- Audit trail — who changed what, when
+
+**Their device reality**
+
+- Desktop at office, good internet
+- Expects government-grade reliability — no downtime during school hours
+- Data must be exportable for official reports and RTI responses
+
+**Their biggest risk**
+If the portal goes down during a critical period — exam season, inspection — it becomes a political and administrative liability. One outage gets escalated to senior officials.
+
+**Success looks like**
+A GMC officer pulls up a district-wide attendance heatmap for March, identifies three schools with below 70% attendance, flags them for inspection — all from one screen in under 10 minutes.
+
+---
+
+## Stakeholder Comparison
+
+|                      | Student          | Parent              | Teacher            | Principal          | GMC Admin          |
+| -------------------- | ---------------- | ------------------- | ------------------ | ------------------ | ------------------ |
+| Primary device       | Low-end Android  | Basic Android / SMS | Mid Android        | Desktop + Android  | Desktop            |
+| Language             | Gujarati         | Gujarati            | Gujarati / Hindi   | Gujarati / English | English / Gujarati |
+| Tech comfort         | Low              | Very Low            | Medium             | Medium             | Medium-High        |
+| Internet reliability | Poor             | Poor                | Moderate           | Moderate           | Good               |
+| Offline need         | Critical         | Not needed          | Moderate           | Low                | None               |
+| Most used feature    | Notes, timetable | SMS alerts          | Attendance, upload | Reports            | Dashboard          |
+| Biggest fear         | App not working  | Missing alerts      | Extra workload     | Wrong data         | System downtime    |
+
+---
+
+## Who Is NOT a Stakeholder
+
+Explicitly excluded from this product:
+
+- **Private school students** — this portal is for GMC government schools only
+- **Coaching class teachers** — no third-party educator access
+- **Media or press** — no public data feeds
+- **Parents of alumni** — access ends when student leaves the school
+
+---
+
+_Every feature in `04-features/` must map back to at least one stakeholder in this document. If it does not, it should not be built._

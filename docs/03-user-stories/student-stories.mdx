@@ -1,0 +1,231 @@
+# Student User Stories
+
+**Version:** 1.0
+**Last Updated:** May 2026
+**Total Stories:** 18
+
+---
+
+## Authentication & Onboarding
+
+---
+
+**ST-001**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | Log in with my roll number and a simple PIN |
+| So that | I do not need to remember a complex password |
+| Priority | Critical |
+| Acceptance | Login works with roll number + 4 digit PIN. Wrong PIN 5 times locks account for 30 minutes. |
+
+---
+
+**ST-002**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | See the app in Gujarati |
+| So that | I can understand everything without knowing English |
+| Priority | Critical |
+| Acceptance | All labels, buttons, alerts, and error messages appear in Gujarati by default. |
+
+---
+
+**ST-003**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | Reset my PIN using my registered mobile number |
+| So that | I can recover access if I forget my PIN |
+| Priority | High |
+| Acceptance | OTP sent to registered number. New PIN set within 3 steps. Works without teacher help. |
+
+---
+
+## Timetable
+
+---
+
+**ST-004**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | See today's timetable on the home screen |
+| So that | I know which subjects I have and when |
+| Priority | High |
+| Acceptance | Timetable shows current day by default. Loads from cache if offline. Updates when online. |
+
+---
+
+**ST-005**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | See the full weekly timetable |
+| So that | I can plan my studies for the week |
+| Priority | Medium |
+| Acceptance | Weekly view shows all 6 days. Each slot shows subject name and teacher name. |
+
+---
+
+## Library & Study Materials
+
+---
+
+**ST-006**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | Browse notes and materials uploaded by my teachers |
+| So that | I have access to all study content in one place |
+| Priority | Critical |
+| Acceptance | Materials listed by subject. Shows upload date and teacher name. Opens PDF in-app. |
+
+---
+
+**ST-007**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | Download notes to my phone for offline reading |
+| So that | I can study without internet at home or on the bus |
+| Priority | Critical |
+| Acceptance | Download button on every material. Downloaded files open in airplane mode. Download progress shown. Fails gracefully if storage is full. |
+
+---
+
+**ST-008**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | See which materials I have already downloaded |
+| So that | I do not download the same file twice and waste storage |
+| Priority | High |
+| Acceptance | Downloaded materials marked with a clear icon. Separate "Downloaded" section available. |
+
+---
+
+**ST-009**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | Delete downloaded files I no longer need |
+| So that | I can free up storage on my phone |
+| Priority | Medium |
+| Acceptance | Delete option on each downloaded file. Confirms before deleting. File re-downloadable anytime. |
+
+---
+
+## Assignments
+
+---
+
+**ST-010**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | See all my pending assignments in one list |
+| So that | I never miss a submission deadline |
+| Priority | Critical |
+| Acceptance | List shows subject, title, due date. Overdue assignments shown in red. Submitted ones shown as done. |
+
+---
+
+**ST-011**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | Submit an assignment by uploading a photo of my written work |
+| So that | I can submit handwritten assignments digitally |
+| Priority | High |
+| Acceptance | Camera capture or gallery upload. Supports JPG and PDF. Max file size 10MB. Submission timestamp recorded. |
+
+---
+
+**ST-012**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | See my grade and teacher feedback after an assignment is graded |
+| So that | I know how I performed and what to improve |
+| Priority | High |
+| Acceptance | Grade and written feedback visible after teacher marks it. Notification sent when grade is available. |
+
+---
+
+**ST-013**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | Queue an assignment submission when I have no internet |
+| So that | I do not lose my work if connectivity drops at submission time |
+| Priority | High |
+| Acceptance | Submission saved locally if offline. Auto-uploads when internet returns. Student sees "Pending upload" status. |
+
+---
+
+## Attendance & Progress
+
+---
+
+**ST-014**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | See my own attendance percentage for each subject |
+| So that | I know if I am at risk of being short on attendance |
+| Priority | High |
+| Acceptance | Shows percentage per subject and overall. Highlights subjects below 75% in amber. Below 65% in red. |
+
+---
+
+**ST-015**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | See my marks for each exam and test |
+| So that | I can track how I am performing over time |
+| Priority | High |
+| Acceptance | Marks listed by subject and exam type. Shows marks obtained out of total. Sorted by most recent first. |
+
+---
+
+**ST-016**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | See a simple progress summary on my home screen |
+| So that | I get a quick picture of how I am doing without navigating deep |
+| Priority | Medium |
+| Acceptance | Home screen shows attendance %, pending assignments count, and last exam score. Updates daily. |
+
+---
+
+## Notifications
+
+---
+
+**ST-017**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | Get a notification when a teacher uploads new notes |
+| So that | I know when new material is available to download |
+| Priority | Medium |
+| Acceptance | Push notification sent within 15 minutes of upload. Tapping notification opens the material directly. Works only if notifications are enabled. |
+
+---
+
+**ST-018**
+| Field | Detail |
+|---|---|
+| As a | Student |
+| I want to | Get a reminder one day before an assignment is due |
+| So that | I do not forget to submit on time |
+| Priority | High |
+| Acceptance | Reminder notification at 7 PM the evening before due date. Only sent if assignment is not yet submitted. |
+
+---
+
+_All student stories must be tested on a low-end Android device (2GB RAM, Android 8) before marking as complete._

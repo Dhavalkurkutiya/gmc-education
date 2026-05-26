@@ -1,0 +1,994 @@
+# Database Schema — GMC Education Portal
+
+**Document ID:** DB-SCHEMA-01  
+**Database:** PostgreSQL 15+  
+**Last Updated:** 2026  
+**Owner:** Tech Lead  
+**Encoding:** UTF8 (utf8mb4 equivalent — supports Gujarati, Hindi, English)
+
+---
+
+## Architecture Overview
+
+```
+municipalities
+    └── schools
+            ├── academic_years
+            ├── classes
+            │     ├── students
+            │     ├── timetable_slots
+            │     └── class_subjects (class ↔ subject ↔ teacher mapping)
+            ├── teachers
+            ├── subjects
+            └── parents (linked via student_parents)
+
+Per Class + Subject:
+    ├── materials (study content uploaded by teacher)
+    ├── assignments
+    │     └── submissions (student responses)
+    ├── attendance_records
+    │     └── attendance_entries (per student per day)
+    └── marks
+          └── mark_entries (per student per assessment)
+
+System:
+    ├── users (auth table — all roles)
+    ├── roles + permissions
+    ├── notifications
+    ├── offline_sync_queue
+    └── audit_logs
+```
+
+---
+
+## 1. Core Infrastructure Tables
+
+### municipalities
+
+```sql
+CREATE TABLE municipalities (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          VARCHAR(255) NOT NULL,           -- "Gandhinagar Municipal Corporation"
+  name_gu       VARCHAR(255),                    -- Gujarati name
+  state         VARCHAR(100) NOT NULL DEFAULT 'Gujarat',
+  code          VARCHAR(50) UNIQUE NOT NULL,     -- "GMC-GN-001"
+  is_active     BOOLEAN DEFAULT TRUE,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+---
+
+### schools
+
+```sql
+CREATE TABLE schools (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  municipality_id   UUID NOT NULL REFERENCES municipalities(id),
+  name              VARCHAR(255) NOT NULL,
+  name_gu           VARCHAR(255),                -- Gujarati name
+  code              VARCHAR(50) UNIQUE NOT NULL, -- "GMC-SCH-0042"
+  address           TEXT,
+  ward_number       VARCHAR(50),
+  principal_id      UUID,                        -- FK to users (set after user created)
+  medium            VARCHAR(50) DEFAULT 'Gujarati', -- teaching medium
+  board             VARCHAR(100) DEFAULT 'GSEB',
+  established_year  INTEGER,
+  phone             VARCHAR(20),
+  status            VARCHAR(20) DEFAULT 'ACTIVE'
+                    CHECK (status IN ('ACTIVE', 'INACTIVE', 'ARCHIVED')),
+  storage_quota_mb  INTEGER DEFAULT 51200,       -- 50GB default
+  storage_used_mb   INTEGER DEFAULT 0,
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_schools_municipality ON schools(municipality_id);
+```
+
+---
+
+### academic_years
+
+```sql
+CREATE TABLE academic_years (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id       UUID NOT NULL REFERENCES schools(id),
+  name            VARCHAR(50) NOT NULL,          -- "2024-25"
+  start_date      DATE NOT NULL,                 -- 2024-06-01
+  end_date        DATE NOT NULL,                 -- 2025-03-31
+  is_current      BOOLEAN DEFAULT FALSE,
+  is_archived     BOOLEAN DEFAULT FALSE,
+  archived_at     TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE (school_id, name)
+);
+
+-- Enforce only one current (active) academic year per school at any time
+CREATE UNIQUE INDEX one_current_year_per_school
+ON academic_years (school_id)
+WHERE is_current = TRUE;
+```
+
+---
+
+## 2. User & Auth Tables
+
+### users
+
+```sql
+CREATE TABLE users (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id         UUID REFERENCES schools(id),     -- NULL for GMC Admin / Super Admin
+  municipality_id   UUID REFERENCES municipalities(id),
+  role              VARCHAR(30) NOT NULL
+                    CHECK (role IN (
+                      'SUPER_ADMIN',
+                      'GMC_ADMIN',
+                      'PRINCIPAL',
+                      'TEACHER',
+                      'STUDENT',
+                      'PARENT'
+                    )),
+  -- Identity
+  name              VARCHAR(255) NOT NULL,
+  name_gu           VARCHAR(255),                    -- Gujarati name
+  email             VARCHAR(255) UNIQUE,             -- teachers and above
+  phone             VARCHAR(20),                     -- parents + teachers
+  student_code      VARCHAR(50) UNIQUE,              -- only for students: "GJ-2024-SCH01-0045"
+
+  -- Auth
+  password_hash     VARCHAR(255),                    -- bcrypt hash
+  pin_hash          VARCHAR(255),                    -- students: 6-digit PIN hash
+  token_version     INTEGER DEFAULT 0,               -- increment on password change to invalidate tokens
+  
+  -- Status
+  status            VARCHAR(20) DEFAULT 'ACTIVE'
+                    CHECK (status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING_APPROVAL')),
+  is_verified       BOOLEAN DEFAULT FALSE,
+  last_login_at     TIMESTAMPTZ,
+  failed_login_count INTEGER DEFAULT 0,
+  locked_until      TIMESTAMPTZ,
+
+  -- Language preference
+  language          VARCHAR(10) DEFAULT 'gu'
+                    CHECK (language IN ('gu', 'en')),
+
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_users_school ON users(school_id);
+CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX idx_users_student_code ON users(student_code);
+```
+
+---
+
+### refresh_tokens
+
+```sql
+CREATE TABLE refresh_tokens (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash  VARCHAR(255) NOT NULL UNIQUE,     -- hashed refresh token
+  device_info TEXT,                              -- "Redmi 9A, Android 10"
+  ip_address  INET,
+  expires_at  TIMESTAMPTZ NOT NULL,
+  is_revoked  BOOLEAN DEFAULT FALSE,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
+```
+
+---
+
+### otp_requests
+
+```sql
+CREATE TABLE otp_requests (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  phone         VARCHAR(20) NOT NULL,
+  otp_hash      VARCHAR(255) NOT NULL,
+  purpose       VARCHAR(50) NOT NULL
+                CHECK (purpose IN ('LOGIN', 'PASSWORD_RESET', 'DEVICE_VERIFY')),
+  attempt_count INTEGER DEFAULT 0,
+  is_used       BOOLEAN DEFAULT FALSE,
+  expires_at    TIMESTAMPTZ NOT NULL,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+---
+
+### consent_records
+
+```sql
+CREATE TABLE consent_records (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id      UUID NOT NULL REFERENCES users(id),
+  parent_id       UUID NOT NULL REFERENCES users(id),
+  consent_type    VARCHAR(100) NOT NULL,
+  -- DATA_PROCESSING | SMS_ALERTS | PHOTO_UPLOAD
+  is_granted      BOOLEAN NOT NULL,
+  granted_at      TIMESTAMPTZ,
+  revoked_at      TIMESTAMPTZ,
+  ip_address      INET,
+  device_info     TEXT,
+  consent_version VARCHAR(20) NOT NULL, -- "v1.0" — policy version
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE (student_id, consent_type, consent_version)
+);
+```
+
+---
+
+### data_erasure_requests
+
+```sql
+CREATE TABLE data_erasure_requests (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  requested_by    UUID NOT NULL REFERENCES users(id),
+  student_id      UUID NOT NULL REFERENCES users(id),
+  reason          TEXT,
+  status          VARCHAR(30) DEFAULT 'PENDING'
+                  CHECK (status IN (
+                    'PENDING', 'IN_PROGRESS',
+                    'COMPLETED', 'REJECTED'
+                  )),
+  rejection_reason TEXT,
+  due_by          TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '72 hours'),
+  completed_at    TIMESTAMPTZ,
+  processed_by    UUID REFERENCES users(id),
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+```
+```
+
+---
+
+## 3. Academic Structure Tables
+
+### subjects
+
+```sql
+CREATE TABLE subjects (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id   UUID NOT NULL REFERENCES schools(id),
+  name        VARCHAR(255) NOT NULL,             -- "Mathematics"
+  name_gu     VARCHAR(255),                      -- "ગણિત"
+  code        VARCHAR(50),                       -- "MATH-8"
+  grade_level INTEGER,                           -- 8 (for Class 8)
+  is_active   BOOLEAN DEFAULT TRUE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE (school_id, code)
+);
+```
+
+---
+
+### classes
+
+```sql
+CREATE TABLE classes (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id        UUID NOT NULL REFERENCES schools(id),
+  academic_year_id UUID NOT NULL REFERENCES academic_years(id),
+  name             VARCHAR(50) NOT NULL,         -- "8B"
+  grade            INTEGER NOT NULL,             -- 8
+  section          VARCHAR(10),                  -- "B"
+  class_teacher_id UUID REFERENCES users(id),   -- FK to teacher
+  room_number      VARCHAR(20),
+  capacity         INTEGER DEFAULT 40,
+  created_at       TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE (school_id, academic_year_id, grade, section)
+);
+
+CREATE INDEX idx_classes_school ON classes(school_id);
+CREATE INDEX idx_classes_year ON classes(academic_year_id);
+```
+
+---
+
+### class_subjects
+
+Mapping: which teacher teaches which subject to which class.
+
+```sql
+CREATE TABLE class_subjects (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id    UUID NOT NULL REFERENCES classes(id),
+  subject_id  UUID NOT NULL REFERENCES subjects(id),
+  teacher_id  UUID NOT NULL REFERENCES users(id),
+  school_id   UUID NOT NULL REFERENCES schools(id), -- denormalized for RLS
+  is_active   BOOLEAN DEFAULT TRUE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE (class_id, subject_id)
+);
+
+CREATE INDEX idx_class_subjects_teacher ON class_subjects(teacher_id);
+CREATE INDEX idx_class_subjects_class ON class_subjects(class_id);
+```
+
+---
+
+### student_classes
+
+Student enrollment in a class for a year.
+
+```sql
+CREATE TABLE student_classes (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id       UUID NOT NULL REFERENCES users(id),
+  class_id         UUID NOT NULL REFERENCES classes(id),
+  academic_year_id UUID NOT NULL REFERENCES academic_years(id),
+  school_id        UUID NOT NULL REFERENCES schools(id),
+  roll_number      VARCHAR(20),
+  enrolled_at      DATE NOT NULL DEFAULT CURRENT_DATE,
+  left_at          DATE,                         -- if transferred/dropout
+  status           VARCHAR(20) DEFAULT 'ACTIVE'
+                   CHECK (status IN ('ACTIVE', 'TRANSFERRED', 'DROPPED', 'GRADUATED')),
+
+  UNIQUE (class_id, roll_number),
+  UNIQUE (student_id, academic_year_id)          -- one class per student per year
+);
+```
+
+---
+
+### student_parents
+
+```sql
+CREATE TABLE student_parents (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id  UUID NOT NULL REFERENCES users(id),
+  parent_id   UUID NOT NULL REFERENCES users(id),
+  relation    VARCHAR(50) DEFAULT 'Parent'
+              CHECK (relation IN ('Father', 'Mother', 'Guardian', 'Parent')),
+  is_primary  BOOLEAN DEFAULT TRUE,              -- primary contact for SMS
+  verified_by UUID REFERENCES users(id),         -- teacher who verified this link
+  verified_at TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE (student_id, parent_id)
+);
+
+---
+
+### student_transfers
+
+```sql
+CREATE TABLE student_transfers (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id        UUID NOT NULL REFERENCES users(id),
+  from_school_id    UUID NOT NULL REFERENCES schools(id),
+  to_school_id      UUID NOT NULL REFERENCES schools(id),
+  from_class_id     UUID REFERENCES classes(id),
+  transfer_date     DATE NOT NULL,
+  reason            TEXT,
+  approved_by       UUID REFERENCES users(id),
+  documents_url     TEXT,
+  created_at        TIMESTAMPTZ DEFAULT NOW()
+);
+```
+```
+
+---
+
+## 4. Timetable
+
+### timetable_slots
+
+```sql
+CREATE TABLE timetable_slots (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id         UUID NOT NULL REFERENCES classes(id),
+  class_subject_id UUID NOT NULL REFERENCES class_subjects(id),
+  school_id        UUID NOT NULL REFERENCES schools(id),
+  day_of_week      INTEGER NOT NULL CHECK (day_of_week BETWEEN 1 AND 6), -- 1=Mon, 6=Sat
+  period_number    INTEGER NOT NULL,
+  start_time       TIME NOT NULL,
+  end_time         TIME NOT NULL,
+  effective_from   DATE NOT NULL,
+  effective_until  DATE,
+  created_at       TIMESTAMPTZ DEFAULT NOW(),
+
+  -- No two slots for same class at same time
+  UNIQUE (class_id, day_of_week, period_number, effective_from)
+);
+
+-- Ensure a teacher is not double-booked across different classes in the same slot
+CREATE OR REPLACE FUNCTION check_teacher_double_booking()
+RETURNS TRIGGER AS $$
+DECLARE
+  new_teacher_id UUID;
+  conflict_found BOOLEAN;
+BEGIN
+  -- Get teacher_id for the slot being scheduled
+  SELECT teacher_id INTO new_teacher_id
+  FROM class_subjects
+  WHERE id = NEW.class_subject_id;
+
+  -- Check if this teacher is already booked in another class at the same slot
+  SELECT EXISTS (
+    SELECT 1
+    FROM timetable_slots ts
+    JOIN class_subjects cs ON ts.class_subject_id = cs.id
+    WHERE cs.teacher_id = new_teacher_id
+      AND ts.day_of_week = NEW.day_of_week
+      AND ts.period_number = NEW.period_number
+      AND ts.id != NEW.id -- ignore self on updates
+      AND (ts.effective_until IS NULL OR NEW.effective_from <= ts.effective_until)
+      AND (NEW.effective_until IS NULL OR ts.effective_from <= NEW.effective_until)
+  ) INTO conflict_found;
+
+  IF conflict_found THEN
+    RAISE EXCEPTION 'Teacher % is already booked in another class for day %, period %',
+      new_teacher_id, NEW.day_of_week, NEW.period_number;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER enforce_no_teacher_double_booking
+BEFORE INSERT OR UPDATE ON timetable_slots
+FOR EACH ROW EXECUTE FUNCTION check_teacher_double_booking();
+```
+
+---
+
+### school_holidays
+
+```sql
+CREATE TABLE school_holidays (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id   UUID NOT NULL REFERENCES schools(id),
+  date        DATE NOT NULL,
+  name        VARCHAR(255) NOT NULL,             -- "Diwali Holiday"
+  name_gu     VARCHAR(255),
+  type        VARCHAR(50) DEFAULT 'PUBLIC'
+              CHECK (type IN ('PUBLIC', 'SCHOOL_SPECIFIC', 'EMERGENCY')),
+  created_by  UUID REFERENCES users(id),
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE (school_id, date)
+);
+```
+
+---
+
+## 5. Attendance
+
+### attendance_records
+
+One record per class per date — the "sheet" for that day.
+
+```sql
+CREATE TABLE attendance_records (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id         UUID NOT NULL REFERENCES classes(id),
+  school_id        UUID NOT NULL REFERENCES schools(id),
+  academic_year_id UUID NOT NULL REFERENCES academic_years(id),
+  date             DATE NOT NULL,
+  submitted_by     UUID NOT NULL REFERENCES users(id),  -- teacher
+  submitted_at     TIMESTAMPTZ,
+  status           VARCHAR(20) DEFAULT 'DRAFT'
+                   CHECK (status IN ('DRAFT', 'SUBMITTED', 'APPROVED', 'CORRECTED')),
+  correction_reason TEXT,
+  corrected_by     UUID REFERENCES users(id),
+  created_at       TIMESTAMPTZ DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE (class_id, date)
+);
+
+CREATE INDEX idx_attendance_class_date ON attendance_records(class_id, date);
+CREATE INDEX idx_attendance_school ON attendance_records(school_id);
+```
+
+---
+
+### attendance_entries
+
+One row per student per day.
+
+```sql
+CREATE TABLE attendance_entries (
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  attendance_record_id  UUID NOT NULL REFERENCES attendance_records(id) ON DELETE CASCADE,
+  student_id            UUID NOT NULL REFERENCES users(id),
+  school_id             UUID NOT NULL REFERENCES schools(id),
+  status                VARCHAR(20) NOT NULL
+                        CHECK (status IN ('PRESENT', 'ABSENT', 'LATE', 'EXCUSED', 'HOLIDAY')),
+  remark                TEXT,
+  created_at            TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE (attendance_record_id, student_id)
+);
+
+CREATE INDEX idx_attendance_entries_student ON attendance_entries(student_id);
+
+---
+
+### student_attendance_summary
+
+```sql
+CREATE MATERIALIZED VIEW student_attendance_summary AS
+SELECT
+  sc.student_id,
+  sc.class_id,
+  sc.school_id,
+  sc.academic_year_id,
+  COUNT(ae.id) FILTER (WHERE ae.status = 'PRESENT') AS present_days,
+  COUNT(ae.id) FILTER (WHERE ae.status != 'HOLIDAY') AS total_days,
+  ROUND(
+    COUNT(ae.id) FILTER (WHERE ae.status = 'PRESENT') * 100.0
+    / NULLIF(COUNT(ae.id) FILTER (WHERE ae.status != 'HOLIDAY'), 0),
+    2
+  ) AS attendance_percentage
+FROM student_classes sc
+LEFT JOIN attendance_entries ae ON ae.student_id = sc.student_id
+LEFT JOIN attendance_records ar ON ar.id = ae.attendance_record_id
+  AND ar.class_id = sc.class_id
+GROUP BY sc.student_id, sc.class_id, sc.school_id, sc.academic_year_id;
+
+CREATE UNIQUE INDEX ON student_attendance_summary(student_id, academic_year_id);
+```
+```
+
+---
+
+## 6. Materials (Library)
+
+### materials
+
+```sql
+CREATE TABLE materials (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_subject_id UUID NOT NULL REFERENCES class_subjects(id),
+  school_id        UUID NOT NULL REFERENCES schools(id),
+  uploaded_by      UUID NOT NULL REFERENCES users(id),
+  title            VARCHAR(500) NOT NULL,
+  title_gu         VARCHAR(500),
+  description      TEXT,
+  file_url         TEXT NOT NULL,                -- S3 path
+  file_name        VARCHAR(500) NOT NULL,
+  file_type        VARCHAR(50) NOT NULL
+                   CHECK (file_type IN ('PDF', 'IMAGE', 'VIDEO')),
+  file_size_kb     INTEGER NOT NULL,
+  checksum         VARCHAR(64) NOT NULL,         -- SHA256 for integrity
+  version          INTEGER DEFAULT 1,
+  is_active        BOOLEAN DEFAULT TRUE,
+  approved_by      UUID REFERENCES users(id),
+  approved_at      TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ DEFAULT NOW(),
+
+  -- Prevent duplicate file uploads within the same subject
+  CONSTRAINT unique_file_per_subject UNIQUE (class_subject_id, checksum)
+);
+
+CREATE INDEX idx_materials_class_subject ON materials(class_subject_id);
+
+---
+
+### material_versions
+
+```sql
+CREATE TABLE material_versions (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  material_id   UUID NOT NULL REFERENCES materials(id) ON DELETE CASCADE,
+  version       INTEGER NOT NULL,
+  file_url      TEXT NOT NULL,
+  checksum      VARCHAR(64) NOT NULL,
+  file_size_kb  INTEGER NOT NULL,
+  uploaded_by   UUID REFERENCES users(id),
+  change_note   TEXT,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE (material_id, version)
+);
+```
+
+---
+
+### Enforce Storage Quotas
+
+```sql
+CREATE OR REPLACE FUNCTION check_storage_quota()
+RETURNS TRIGGER AS $$
+DECLARE
+  quota INTEGER;
+  used  INTEGER;
+BEGIN
+  SELECT storage_quota_mb, storage_used_mb
+  INTO quota, used
+  FROM schools WHERE id = NEW.school_id;
+
+  -- Convert uploaded file size from KB to MB and verify
+  IF (used + (NEW.file_size_kb / 1024.0)) > quota THEN
+    RAISE EXCEPTION
+      'Storage quota exceeded for school. Used: %MB, Quota: %MB',
+      used, quota;
+  END IF;
+
+  -- Update used storage
+  UPDATE schools
+  SET storage_used_mb = storage_used_mb + (NEW.file_size_kb / 1024.0)
+  WHERE id = NEW.school_id;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER enforce_storage_quota
+BEFORE INSERT ON materials
+FOR EACH ROW EXECUTE FUNCTION check_storage_quota();
+```
+```
+
+---
+
+## 7. Assignments & Submissions
+
+### assignments
+
+```sql
+CREATE TABLE assignments (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_subject_id UUID NOT NULL REFERENCES class_subjects(id),
+  school_id        UUID NOT NULL REFERENCES schools(id),
+  created_by       UUID NOT NULL REFERENCES users(id),
+  title            VARCHAR(500) NOT NULL,
+  description      TEXT,
+  instructions     TEXT,
+  file_url         TEXT,                         -- optional attached file
+  max_marks        INTEGER NOT NULL DEFAULT 100,
+  deadline_at      TIMESTAMPTZ NOT NULL,         -- stored in UTC, displayed in IST
+  grace_period_min INTEGER DEFAULT 120,          -- offline submission grace: 2 hours
+  status           VARCHAR(20) DEFAULT 'ACTIVE'
+                   CHECK (status IN ('DRAFT', 'ACTIVE', 'CLOSED', 'ARCHIVED')),
+  created_at       TIMESTAMPTZ DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_assignments_class_subject ON assignments(class_subject_id);
+CREATE INDEX idx_assignments_deadline ON assignments(deadline_at);
+```
+
+---
+
+### submissions
+
+```sql
+CREATE TABLE submissions (
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  assignment_id         UUID NOT NULL REFERENCES assignments(id),
+  student_id            UUID NOT NULL REFERENCES users(id),
+  school_id             UUID NOT NULL REFERENCES schools(id),
+  file_url              TEXT NOT NULL,
+  file_name             VARCHAR(500),
+  file_size_kb          INTEGER,
+  checksum              VARCHAR(64),
+  submitted_at          TIMESTAMPTZ NOT NULL,    -- when student tapped submit
+  synced_at             TIMESTAMPTZ,             -- when actually reached server
+  is_late               BOOLEAN DEFAULT FALSE,
+  is_offline_submission BOOLEAN DEFAULT FALSE,
+  status                VARCHAR(20) DEFAULT 'SUBMITTED'
+                        CHECK (status IN ('SUBMITTED', 'GRADING', 'GRADED', 'RETURNED')),
+  grade                 INTEGER,
+  grade_remark          TEXT,
+  graded_by             UUID REFERENCES users(id),
+  graded_at             TIMESTAMPTZ,
+  created_at            TIMESTAMPTZ DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE (assignment_id, student_id)             -- one submission per student per assignment
+);
+
+CREATE INDEX idx_submissions_assignment ON submissions(assignment_id);
+CREATE INDEX idx_submissions_student ON submissions(student_id);
+
+-- Enforce assignment submission deadline & grace period at DB level
+CREATE OR REPLACE FUNCTION check_submission_deadline()
+RETURNS TRIGGER AS $$
+DECLARE
+  deadline      TIMESTAMPTZ;
+  grace_minutes INTEGER;
+BEGIN
+  SELECT deadline_at, grace_period_min
+  INTO deadline, grace_minutes
+  FROM assignments
+  WHERE id = NEW.assignment_id;
+
+  -- Hard cutoff = deadline + grace period
+  IF NEW.submitted_at > (deadline + (grace_minutes || ' minutes')::INTERVAL) THEN
+    RAISE EXCEPTION
+      'Submission rejected. Deadline was %, grace period % minutes.',
+      deadline, grace_minutes;
+  END IF;
+
+  -- Mark as late if after deadline but within grace
+  IF NEW.submitted_at > deadline THEN
+    NEW.is_late := TRUE;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER enforce_submission_deadline
+BEFORE INSERT ON submissions
+FOR EACH ROW EXECUTE FUNCTION check_submission_deadline();
+```
+
+---
+
+## 8. Marks & Assessments
+
+### assessments
+
+```sql
+CREATE TABLE assessments (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_subject_id UUID NOT NULL REFERENCES class_subjects(id),
+  school_id        UUID NOT NULL REFERENCES schools(id),
+  academic_year_id UUID NOT NULL REFERENCES academic_years(id),
+  name             VARCHAR(255) NOT NULL,        -- "Unit Test 1", "Mid-Term Exam"
+  name_gu          VARCHAR(255),
+  type             VARCHAR(50) NOT NULL
+                   CHECK (type IN ('UNIT_TEST', 'MID_TERM', 'FINAL_EXAM', 'ASSIGNMENT', 'PROJECT', 'ORAL')),
+  max_marks        INTEGER NOT NULL,
+  exam_date        DATE,
+  is_published     BOOLEAN DEFAULT FALSE,
+  published_at     TIMESTAMPTZ,
+  published_by     UUID REFERENCES users(id),
+  created_at       TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+---
+
+### mark_entries
+
+```sql
+CREATE TABLE mark_entries (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  assessment_id   UUID NOT NULL REFERENCES assessments(id),
+  student_id      UUID NOT NULL REFERENCES users(id),
+  school_id       UUID NOT NULL REFERENCES schools(id),
+  marks_obtained  NUMERIC(5,2),                  -- NULL = not yet entered
+  is_absent       BOOLEAN DEFAULT FALSE,
+  is_exempt       BOOLEAN DEFAULT FALSE,
+  remark          TEXT,
+  entered_by      UUID NOT NULL REFERENCES users(id),
+  entered_at      TIMESTAMPTZ DEFAULT NOW(),
+  -- Correction tracking
+  original_marks  NUMERIC(5,2),                  -- kept if corrected post-publish
+  corrected_by    UUID REFERENCES users(id),
+  corrected_at    TIMESTAMPTZ,
+  correction_reason TEXT,
+  approved_by     UUID REFERENCES users(id),
+
+  UNIQUE (assessment_id, student_id),
+
+  -- marks cannot exceed max_marks (enforced via trigger or app logic)
+  CONSTRAINT valid_marks CHECK (
+    marks_obtained IS NULL OR 
+    marks_obtained >= 0
+  )
+);
+
+CREATE INDEX idx_mark_entries_student ON mark_entries(student_id);
+CREATE INDEX idx_mark_entries_assessment ON mark_entries(assessment_id);
+
+-- Enforce marks_obtained <= assessment.max_marks
+CREATE OR REPLACE FUNCTION check_marks_limit()
+RETURNS TRIGGER AS $$
+DECLARE
+  max INTEGER;
+BEGIN
+  SELECT max_marks INTO max
+  FROM assessments
+  WHERE id = NEW.assessment_id;
+
+  IF NEW.marks_obtained > max THEN
+    RAISE EXCEPTION 'Marks % exceed max_marks %',
+      NEW.marks_obtained, max;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER enforce_marks_limit
+BEFORE INSERT OR UPDATE ON mark_entries
+FOR EACH ROW EXECUTE FUNCTION check_marks_limit();
+```
+
+---
+
+## 9. Notifications
+
+### notifications
+
+```sql
+CREATE TABLE notifications (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id     UUID REFERENCES schools(id),
+  recipient_id  UUID NOT NULL REFERENCES users(id),
+  event_type    VARCHAR(100) NOT NULL,
+  -- e.g. CHILD_ABSENT, MARKS_PUBLISHED, ASSIGNMENT_DUE,
+  --      ATTENDANCE_LOW, SCHOOL_HOLIDAY, RESULT_PUBLISHED
+  title         VARCHAR(500),
+  body          TEXT NOT NULL,
+  body_gu       TEXT,                            -- Gujarati version
+  channel       VARCHAR(20) NOT NULL
+                CHECK (channel IN ('SMS', 'PUSH', 'IN_APP')),
+  status        VARCHAR(20) DEFAULT 'PENDING'
+                CHECK (status IN ('PENDING', 'SENT', 'DELIVERED', 'FAILED', 'OPTED_OUT')),
+  retry_count   INTEGER DEFAULT 0,
+  sent_at       TIMESTAMPTZ,
+  delivered_at  TIMESTAMPTZ,
+  error_message TEXT,
+  batch_id      UUID,                            -- for notification batching
+  is_batched    BOOLEAN DEFAULT FALSE,
+  metadata      JSONB,                           -- extra context {studentId, classId, etc.}
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_notifications_recipient ON notifications(recipient_id);
+CREATE INDEX idx_notifications_status ON notifications(status);
+CREATE INDEX idx_notifications_created ON notifications(created_at);
+```
+
+---
+
+## 10. Offline Sync
+
+### offline_sync_queue
+
+Stored on device — this is the mobile local SQLite schema.
+
+```sql
+-- SQLite on device (same structure, no UUID — use TEXT)
+CREATE TABLE offline_sync_queue (
+  id            TEXT PRIMARY KEY,               -- local UUID
+  action_type   TEXT NOT NULL,
+  -- ATTENDANCE_SUBMIT | ASSIGNMENT_SUBMIT | MARKS_SAVE | PROGRESS_UPDATE
+  payload       TEXT NOT NULL,                  -- JSON stringified
+  created_at    TEXT NOT NULL,                  -- ISO timestamp
+  status        TEXT DEFAULT 'PENDING',
+  -- PENDING | SYNCING | COMPLETED | FAILED | CONFLICT
+  retry_count   INTEGER DEFAULT 0,
+  last_error    TEXT,
+  synced_at     TEXT
+);
+```
+
+### sync_metadata
+
+```sql
+-- SQLite on device
+CREATE TABLE sync_metadata (
+  data_type         TEXT PRIMARY KEY,
+  -- students | timetable | materials | assignments | marks | attendance
+  last_synced_at    TEXT NOT NULL,
+  record_count      INTEGER DEFAULT 0
+);
+```
+
+---
+
+## 11. Audit Log
+
+### audit_logs
+
+Never deletable. Append-only.
+
+```sql
+CREATE TABLE audit_logs (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID REFERENCES users(id),
+  school_id     UUID REFERENCES schools(id),
+  action        VARCHAR(100) NOT NULL,
+  -- USER_LOGIN | MARKS_CHANGED | ATTENDANCE_CORRECTED |
+  -- FILE_EXPORTED | STUDENT_DELETED | ROLE_CHANGED | etc.
+  entity_type   VARCHAR(100),                   -- "marks" | "attendance" | "user"
+  entity_id     UUID,
+  old_value     JSONB,                          -- before state
+  new_value     JSONB,                          -- after state
+  ip_address    INET,
+  device_info   TEXT,
+  reason        TEXT,                           -- required for sensitive changes
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
+CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
+CREATE INDEX idx_audit_logs_created ON audit_logs(created_at);
+
+-- Prevent deletion — enforced at DB user permission level
+-- App DB user has NO DELETE privilege on audit_logs
+```
+
+---
+
+## 12. Row-Level Security (RLS)
+
+PostgreSQL RLS ensures school data isolation at database level — not just application level.
+
+```sql
+-- Enable RLS on all sensitive tables
+ALTER TABLE students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attendance_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mark_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE materials ENABLE ROW LEVEL SECURITY;
+
+-- Example policy: Teacher sees only their school's data
+CREATE POLICY school_isolation ON attendance_records
+  USING (school_id = current_setting('app.current_school_id')::UUID);
+
+-- Set at start of every request:
+SET app.current_school_id = '<school_id_from_jwt>';
+```
+
+---
+
+## 13. Entity Relationship Summary
+
+```
+municipalities
+    │
+    └──< schools
+              │
+              ├──< academic_years
+              ├──< subjects
+              ├──< classes >──< student_classes >──< users (STUDENT)
+              │       │
+              │       └──< timetable_slots
+              │
+              ├──< class_subjects (class + subject + teacher)
+              │         │
+              │         ├──< materials
+              │         ├──< assignments >──< submissions
+              │         └──< assessments >──< mark_entries
+              │
+              ├──< attendance_records >──< attendance_entries
+              │
+              └──< users (TEACHER, PRINCIPAL, PARENT)
+                        │
+                        └──< student_parents >──< users (STUDENT)
+
+System-wide:
+    notifications
+    audit_logs
+    refresh_tokens
+    otp_requests
+```
+
+---
+
+## 14. Key Design Decisions
+
+**UUIDs everywhere** — not integer IDs. Prevents ID enumeration attacks. Safe to expose in URLs.
+
+**school_id denormalized on most tables** — redundant but critical. Allows RLS policies and fast queries without always joining back to schools table.
+
+**Soft deletes only** — no hard DELETE on academic data. status = ARCHIVED / INACTIVE. Real deletion only on personal data per DPDP erasure request.
+
+**TIMESTAMPTZ not TIMESTAMP** — all timestamps stored with timezone (UTC). Displayed in IST (Asia/Kolkata) in application layer. Prevents the deadline timezone bug.
+
+**JSONB for metadata and audit** — flexible enough for evolving data without schema migrations.
+
+**Audit log is append-only** — DB user has INSERT only on audit_logs. No UPDATE, no DELETE. Even accidental code cannot delete audit history.
+
+**Checksum on all files** — SHA256 stored with every uploaded file. Verified on download. Catches corruption.
+
+**token_version on users** — incrementing this field invalidates all JWTs for that user instantly — used on password change, account suspension.

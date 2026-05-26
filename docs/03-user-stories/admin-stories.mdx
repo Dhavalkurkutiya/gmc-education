@@ -1,0 +1,145 @@
+# GMC Admin User Stories
+
+**Version:** 1.0
+**Last Updated:** May 2026
+**Total Stories:** 10
+
+---
+
+## Key Context
+
+GMC Admins manage the entire platform across all schools. They do not interact with individual students or teachers directly. Their job is infrastructure — adding schools, managing access, seeing district-wide data, and ensuring the system is working. They have good internet and use desktop browsers. Speed and accuracy matter more than simplicity.
+
+---
+
+## School Management
+
+---
+
+**AD-001**
+| Field | Detail |
+|---|---|
+| As a | GMC Admin |
+| I want to | Add a new school to the portal with its details |
+| So that | The school and its users can start using the platform |
+| Priority | Critical |
+| Acceptance | Form to add school name, UDISE code, address, ward, and principal contact. School activates immediately. Principal receives setup SMS with login instructions. |
+
+---
+
+**AD-002**
+| Field | Detail |
+|---|---|
+| As a | GMC Admin |
+| I want to | Deactivate a school that has closed or merged |
+| So that | Its data is preserved but no new logins are possible |
+| Priority | High |
+| Acceptance | Deactivation preserves all historical data. All active sessions for that school terminated. Cannot be undone without re-activation step. Logged with reason and admin ID. |
+
+---
+
+**AD-003**
+| Field | Detail |
+|---|---|
+| As a | GMC Admin |
+| I want to | Bulk import student enrollment data from a CSV file |
+| So that | I do not have to add 50,000 students one by one |
+| Priority | Critical |
+| Acceptance | CSV template provided. Upload validates format before processing. Shows preview of first 10 rows. Errors flagged row by row. Successful import creates accounts and sends login SMS to students. |
+
+---
+
+## User Management
+
+---
+
+**AD-004**
+| Field | Detail |
+|---|---|
+| As a | GMC Admin |
+| I want to | Reset any user's login credentials across any school |
+| So that | I can unblock users without depending on school-level staff |
+| Priority | High |
+| Acceptance | Search by name, roll number, or employee ID. Reset sends new credentials via SMS. Action logged with admin ID and timestamp. |
+
+---
+
+**AD-005**
+| Field | Detail |
+|---|---|
+| As a | GMC Admin |
+| I want to | Assign or change the principal account for a school |
+| So that | Leadership transitions do not disrupt school access |
+| Priority | High |
+| Acceptance | One active principal per school at a time. Previous principal access revoked on reassignment. New principal notified via SMS. Transition logged. |
+
+---
+
+## District-Wide Reporting
+
+---
+
+**AD-006**
+| Field | Detail |
+|---|---|
+| As a | GMC Admin |
+| I want to | See a district-wide attendance dashboard across all schools |
+| So that | I can identify underperforming schools at a glance |
+| Priority | Critical |
+| Acceptance | Heatmap or table showing all schools with current month attendance %. Filterable by ward, school type, and date range. Schools below 70% flagged automatically. |
+
+---
+
+**AD-007**
+| Field | Detail |
+|---|---|
+| As a | GMC Admin |
+| I want to | Generate and download a district-level report for any month |
+| So that | I can submit official reports to senior government officials |
+| Priority | Critical |
+| Acceptance | Report covers all schools — attendance, exam performance, portal usage. Exportable as PDF and Excel. Format matches government reporting templates. Generated in under 30 seconds. |
+
+---
+
+**AD-008**
+| Field | Detail |
+|---|---|
+| As a | GMC Admin |
+| I want to | See portal adoption metrics — which schools are actively using it |
+| So that | I know where to focus training and support efforts |
+| Priority | High |
+| Acceptance | Dashboard shows per-school — daily active users, teacher login rate, materials uploaded this month, attendance submission rate. Sortable and filterable. |
+
+---
+
+## Announcements & Communication
+
+---
+
+**AD-009**
+| Field | Detail |
+|---|---|
+| As a | GMC Admin |
+| I want to | Send a district-wide announcement to all schools at once |
+| So that | Policy updates and urgent notices reach everyone immediately |
+| Priority | High |
+| Acceptance | Announcement composer with option to target all schools or selected schools. Option to push as SMS to all parents district-wide. Delivery report available after sending. |
+
+---
+
+## Audit & Compliance
+
+---
+
+**AD-010**
+| Field | Detail |
+|---|---|
+| As a | GMC Admin |
+| I want to | View a full audit log of all sensitive actions across the platform |
+| So that | I can investigate issues and respond to RTI or compliance requests |
+| Priority | High |
+| Acceptance | Audit log shows — user ID, action type, timestamp, IP address, school. Filterable by school, user, action type, and date. Non-editable. Exportable as CSV. Retained for minimum 3 years. |
+
+---
+
+_GMC Admin screens are desktop-first. All bulk operations must show progress and allow cancellation. All destructive actions require a confirmation step with typed confirmation for irreversible operations._

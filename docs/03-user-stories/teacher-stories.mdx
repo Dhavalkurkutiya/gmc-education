@@ -1,0 +1,204 @@
+# Teacher User Stories
+
+**Version:** 1.0
+**Last Updated:** May 2026
+**Total Stories:** 15
+
+---
+
+## Key Context
+
+Teachers are the backbone of this portal. If they do not use it, students and parents get nothing. Their adoption is the single biggest risk to this product. Every story here must be faster than the paper or WhatsApp alternative — or teachers will not switch.
+
+---
+
+## Authentication
+
+---
+
+**TE-001**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | Log in with my employee ID and password |
+| So that | I have secure access tied to my official identity |
+| Priority | Critical |
+| Acceptance | Login with GMC employee ID + password. Failed login 5 times locks for 1 hour. Password reset via registered mobile OTP. |
+
+---
+
+## Attendance
+
+---
+
+**TE-002**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | Mark attendance for my class in under 2 minutes |
+| So that | It does not take time away from teaching |
+| Priority | Critical |
+| Acceptance | One screen shows full class list. Single tap marks present. Swipe or second tap marks absent. Bulk "Mark all present" button available. Submit in one tap. Total flow under 2 minutes for 40 students. |
+
+---
+
+**TE-003**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | Mark attendance offline when school internet is down |
+| So that | I never have to skip attendance because of connectivity |
+| Priority | Critical |
+| Acceptance | Attendance saved locally when offline. Auto-syncs when internet returns. Sync status visible on screen. |
+
+---
+
+**TE-004**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | Edit attendance within 24 hours if I made a mistake |
+| So that | A wrong entry does not permanently affect a student's record |
+| Priority | High |
+| Acceptance | Edit allowed within 24 hours of submission. After 24 hours, edit requires principal approval. All edits logged with reason. |
+
+---
+
+**TE-005**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | See a summary of which students have low attendance in my class |
+| So that | I can follow up with them or notify parents |
+| Priority | High |
+| Acceptance | List of students below 75% attendance. Sortable by percentage. One tap to flag student for parent alert. |
+
+---
+
+## Study Materials
+
+---
+
+**TE-006**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | Upload notes and study materials as PDF or image files |
+| So that | Students can access them from the library |
+| Priority | Critical |
+| Acceptance | Upload from phone gallery or files. Supports PDF, JPG, PNG. Max file size 25MB. Upload progress shown. Retry on failure. |
+
+---
+
+**TE-007**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | Organize uploaded materials by subject and chapter |
+| So that | Students can find the right material quickly |
+| Priority | High |
+| Acceptance | Subject and chapter tags required at upload. Materials listed under correct subject in student library automatically. |
+
+---
+
+**TE-008**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | Delete or replace an uploaded file if I uploaded the wrong version |
+| So that | Students always see the correct material |
+| Priority | Medium |
+| Acceptance | Delete and re-upload option available. Students who already downloaded old version see an update available notification. |
+
+---
+
+## Assignments
+
+---
+
+**TE-009**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | Create an assignment with a title, description, and due date |
+| So that | Students have clear instructions and a deadline |
+| Priority | Critical |
+| Acceptance | Assignment form has title, description, due date, and subject fields. Published immediately or scheduled. Visible to correct class only. |
+
+---
+
+**TE-010**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | See which students have submitted an assignment and who has not |
+| So that | I can follow up with non-submitters before grading |
+| Priority | High |
+| Acceptance | Submission list shows each student with status — submitted, not submitted, late. Submitted entries show timestamp. |
+
+---
+
+**TE-011**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | Open and review a student's submitted assignment on my phone |
+| So that | I can grade it without a computer |
+| Priority | High |
+| Acceptance | Submitted file opens in-app. PDF and image both supported. Pinch to zoom on images. |
+
+---
+
+**TE-012**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | Enter a grade and written feedback for each submission |
+| So that | Students know their score and what to improve |
+| Priority | Critical |
+| Acceptance | Grade field (numeric) and feedback text field on each submission. Saving grade triggers notification to student. Bulk grading not required in Phase 1. |
+
+---
+
+## Marks & Exams
+
+---
+
+**TE-013**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | Enter exam marks for all students in my subject after an exam |
+| So that | Results are available digitally without paper marksheets |
+| Priority | Critical |
+| Acceptance | Marks entry screen shows full class list. Numeric input per student. Validates against max marks. Saves draft before publish. Published marks visible to students and parents. |
+
+---
+
+**TE-014**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | Edit a mark entry before it is published |
+| So that | I can correct mistakes before students and parents see them |
+| Priority | High |
+| Acceptance | Draft state editable freely. Once published, edit requires principal approval and is logged. |
+
+---
+
+## Reports
+
+---
+
+**TE-015**
+| Field | Detail |
+|---|---|
+| As a | Teacher |
+| I want to | See a simple report of my class — attendance and performance together |
+| So that | I have one view to identify students who need extra support |
+| Priority | Medium |
+| Acceptance | Report shows each student with attendance %, average marks, and pending assignment count. Sortable by any column. Exportable as PDF. |
+
+---
+
+_All teacher flows must complete core tasks — attendance, upload, grade — in under 5 minutes total daily. If any single task takes more than 2 minutes, it must be redesigned._

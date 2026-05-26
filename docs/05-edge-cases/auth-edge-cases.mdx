@@ -1,0 +1,205 @@
+# Auth Edge Cases — GMC Education Portal
+
+**Document ID:** EC-05-AUTH  
+**Category:** User & Authentication  
+**Last Updated:** 2026  
+**Owner:** Tech Lead + QA
+
+---
+
+## EC-AU-001: Student Has No Personal Phone
+
+**Scenario:** Student shares phone with 3 siblings or parent. Login happens on shared device.
+
+**What breaks if ignored:** Session stays logged in. Sibling sees another student's data. Parent accidentally submits an assignment on student's behalf.
+
+**Recommended Fix:**
+- Auto-logout after 15 min inactivity
+- PIN-based quick lock screen
+- "Not you?" prompt on every app open
+- Never store session tokens permanently on shared-device profiles
+
+---
+
+## EC-AU-002: Teacher Transfers to Another School Mid-Year
+
+**Scenario:** Teacher moves from School A to School B in January. Old school data still accessible.
+
+**What breaks if ignored:** Teacher can still view old school's student records. New school data not provisioned. DPDP Act violation.
+
+**Recommended Fix:**
+- Role is school-scoped, not system-scoped
+- Transfer event triggers immediate revocation from old school
+- New school access provisioned within same day via GMC Admin action
+- Audit log entry created for every transfer
+
+---
+
+## EC-AU-003: Student Promoted But Account Not Updated
+
+**Scenario:** New academic year starts. Student is in Class 8 but portal still shows Class 7 data, timetable, and teachers.
+
+**What breaks if ignored:** Wrong timetable shown. Wrong teacher assignments. Wrong library content access. Student sees previous year's classmates.
+
+**Recommended Fix:**
+- Year-end bulk promotion job run by Principal
+- Migration preview screen before confirming promotion
+- Rollback option available for 7 days after promotion
+- Students see "New Year Setup Pending" banner until migration completes
+
+---
+
+## EC-AU-004: Student and Parent Share Same Phone Number
+
+**Scenario:** Poor household — one phone number for the entire family. OTP-based login conflicts.
+
+**What breaks if ignored:** Parent cannot receive separate SMS alerts. Student can access parent dashboard. Account creation fails with "number already registered" error.
+
+**Recommended Fix:**
+- Allow student login via school-issued Student ID + 4-digit PIN — no phone number required
+- Phone number optional for student accounts
+- Parent account linked to student ID, not phone number primarily
+
+---
+
+## EC-AU-005: Teacher Has No Smartphone
+
+**Scenario:** Older government teacher, 55+, uses basic keypad phone. Cannot install the app.
+
+**What breaks if ignored:** Teacher cannot mark attendance, upload notes, or grade assignments. Entire class workflow blocked.
+
+**Recommended Fix:**
+- Full-featured web portal accessible from school desktop/laptop
+- School computer designated for teacher use
+- Attendance can be delegated to class monitor or vice-principal temporarily
+
+---
+
+## EC-AU-006: Principal Accesses Another School's Data via URL Manipulation
+
+**Scenario:** Principal from School A modifies URL parameter or API payload to include School B's ID.
+
+**What breaks if ignored:** Cross-school data leak. Student marks, attendance, and personal data exposed to unauthorized person. Legal violation.
+
+**Recommended Fix:**
+- Every API call server-side validates `school_id` from JWT token — never from request body
+- Row-level security on database: all queries include `WHERE school_id = :token_school_id`
+- Penetration test this specifically before launch
+
+---
+
+## EC-AU-007: GMC Admin Deletes School by Mistake
+
+**Scenario:** Admin selects wrong school in dropdown and confirms deletion without reading.
+
+**What breaks if ignored:** 500+ students lose all accounts and data permanently. 3 years of academic records gone. Teachers locked out.
+
+**Recommended Fix:**
+- Hard delete never allowed — only soft delete (status = ARCHIVED)
+- Deletion requires typing school name manually to confirm
+- 30-day recovery window after archive
+- Only Super Admin role can archive schools — not regular GMC Admin
+
+---
+
+## EC-AU-008: OTP Never Arrives (SMS Gateway Failure)
+
+**Scenario:** User requests OTP for first-time login or password reset. SMS never delivered — network congestion, DND, or gateway outage.
+
+**What breaks if ignored:** User permanently locked out. Cannot onboard. Calls school helpline. Helpline has no solution.
+
+**Recommended Fix:**
+- OTP retry after 60 seconds
+- Alternate channel: WhatsApp OTP as fallback
+- School Admin can manually reset PIN from their dashboard for students
+- OTP validity: 10 minutes, maximum 3 attempts before cooldown
+
+---
+
+## EC-AU-009: Student Forgets PIN and Has No Phone Number Registered
+
+**Scenario:** Student registered with only Student ID + PIN. Forgets PIN. No phone linked. No email.
+
+**What breaks if ignored:** Student permanently locked out. No self-service recovery possible.
+
+**Recommended Fix:**
+- PIN reset via Teacher verification — teacher confirms student identity in person, generates one-time reset code
+- Principal can also reset from school dashboard
+- Recovery code printed on admission form at year start
+
+---
+
+## EC-AU-010: Multiple Admins Logged In Simultaneously — Conflicting Actions
+
+**Scenario:** Two GMC Admins both open School Settings for same school at same time. Both make different changes and save.
+
+**What breaks if ignored:** Last-write-wins. First admin's changes silently overwritten. No one knows which version is active.
+
+**Recommended Fix:**
+- Optimistic locking: record `updated_at` timestamp on load, compare on save
+- If conflict detected: show diff screen — "These fields were changed by [Admin Name] at [time]. Review before saving."
+- Admin activity log shows who changed what and when
+
+---
+
+## EC-AU-011: Session Token Not Invalidated After Password Change
+
+**Scenario:** Teacher changes password after suspecting account compromise. Old session tokens still valid.
+
+**What breaks if ignored:** Attacker with old token continues to access account even after password change.
+
+**Recommended Fix:**
+- Password change triggers invalidation of ALL active sessions for that user
+- Token versioning: each token includes a `token_version` field; password change increments version; old tokens rejected
+
+---
+
+## EC-AU-012: New Academic Year — Old Student IDs Reused
+
+**Scenario:** Student graduates or drops out. Next year, a new student is assigned the same Student ID.
+
+**What breaks if ignored:** New student sees old student's data. Old student's records contaminated. Privacy violation.
+
+**Recommended Fix:**
+- Student IDs are never reused — ever
+- ID format includes year of enrollment: `GJ-2024-SCHOOL01-0045`
+- Archived student accounts permanently locked, not deleted
+
+---
+
+## EC-AU-013: Role Escalation — Teacher Tries to Access Admin Endpoints
+
+**Scenario:** Tech-savvy teacher reverse-engineers API calls from app and sends requests to admin-only endpoints.
+
+**What breaks if ignored:** Teacher can view all students across school, modify other teachers' grades, export bulk data.
+
+**Recommended Fix:**
+- Every endpoint has explicit role check — not just authentication check
+- Role hierarchy: STUDENT < PARENT < TEACHER < PRINCIPAL < SCHOOL_ADMIN < GMC_ADMIN < SUPER_ADMIN
+- Failed authorization attempts logged and alerted to Security team
+
+---
+
+## EC-AU-014: Parent Registers for Wrong Child
+
+**Scenario:** School has two students named "Raj Patel" in different classes. Parent links to wrong student.
+
+**What breaks if ignored:** Parent sees another child's attendance, marks, and personal data. Actual child's parent gets no notifications.
+
+**Recommended Fix:**
+- Parent linking requires: Student ID + Date of Birth + Class — all three must match
+- Parent sees masked confirmation: "You are linking to Raj P., Class 7B. Is this correct?"
+- Teacher must approve parent-child link for first registration
+
+---
+
+## EC-AU-015: Account Created But School Not Yet Active in System
+
+**Scenario:** Teacher account created before GMC Admin finishes setting up the school in the portal.
+
+**What breaks if ignored:** Teacher logs in to empty dashboard. No classes, no students, no subjects visible. Confusing dead end.
+
+**Recommended Fix:**
+- School must be fully configured before any accounts activated
+- Setup checklist for GMC Admin: Classes added → Subjects mapped → Teachers assigned → Students imported → Portal live
+- Teacher sees "Your school setup is in progress. You'll get an SMS when ready."

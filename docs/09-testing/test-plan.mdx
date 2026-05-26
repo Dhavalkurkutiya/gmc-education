@@ -1,0 +1,256 @@
+# Test Plan — GMC Education Portal
+
+**Document ID:** TEST-09  
+**Last Updated:** 2026  
+**Owner:** QA Engineer + Tech Lead  
+**Coverage Required:** 80% unit test coverage minimum before launch
+
+---
+
+## 1. Testing Strategy Overview
+
+### Types of Testing Required
+
+| Type | Who Runs | When | Tool |
+|---|---|---|---|
+| Unit Tests | Developer | Every code commit | Jest / JUnit |
+| Integration Tests | Developer | Every PR | Supertest / Postman |
+| End-to-End Tests | QA | Every release | Playwright / Detox |
+| Offline Mode Tests | QA | Every release | Manual + Android emulator |
+| Device Compatibility Tests | QA | Every release | Physical devices + BrowserStack |
+| Load / Performance Tests | Tech Lead | Before every major release | k6 / JMeter |
+| Security Tests | Tech Lead + External | Before initial launch, annually | OWASP ZAP + manual |
+| UAT (User Acceptance) | Real users | Before final launch | Manual |
+
+---
+
+## 2. Unit Test Coverage Requirements
+
+Minimum 80% line coverage on:
+- All authentication functions (login, token refresh, PIN validation)
+- All authorization checks (role-based access)
+- Marks calculation logic
+- Attendance percentage calculation
+- Offline queue processing logic
+- Conflict resolution functions
+- File validation functions
+- Notification trigger conditions
+
+Zero tolerance for untested code in:
+- Any function that touches student personal data
+- Any function that calculates or modifies marks
+- Any auth or permission check
+
+---
+
+## 3. Integration Test Cases
+
+### Auth Flow
+
+| Test Case | Expected Result |
+|---|---|
+| Valid student login | JWT returned, student data loaded |
+| Invalid PIN (5 attempts) | Account locked, error message shown |
+| Expired access token + valid refresh | New access token issued |
+| Expired refresh token | Redirect to login |
+| Teacher accessing student endpoint | 403 Forbidden |
+| Student accessing teacher endpoint | 403 Forbidden |
+| Parent accessing another student's data | 403 Forbidden |
+| Principal accessing different school's data | 403 Forbidden |
+
+### File Upload
+
+| Test Case | Expected Result |
+|---|---|
+| Valid PDF upload | File stored, checksum validated |
+| Corrupt PDF upload | Rejected with error |
+| .exe file with .pdf extension | Rejected — MIME type check fails |
+| File above size limit | Rejected before upload completes |
+| Duplicate file upload | Warning shown, teacher chooses action |
+| Upload on 2G speed (simulated) | Chunked upload proceeds, resume works |
+
+### Attendance
+
+| Test Case | Expected Result |
+|---|---|
+| Teacher submits attendance for own class | Accepted |
+| Teacher submits attendance for another class | 403 Forbidden |
+| Attendance submitted for future date | Rejected |
+| Attendance submitted twice same day | Second submission shows conflict UI |
+| Backdated attendance (within 3 days) | Accepted with reason required |
+| Backdated attendance (older than 3 days) | Requires Principal approval |
+
+### Marks
+
+| Test Case | Expected Result |
+|---|---|
+| Marks entered above max_marks | Rejected — validation error |
+| Marks entered as text | Rejected — numeric only |
+| Marks changed after report published | Requires Principal approval |
+| Marks deleted | Requires audit log entry |
+
+---
+
+## 4. End-to-End Test Flows
+
+### Happy Path: Student
+
+1. Open app (offline) → see timetable from last sync
+2. Connect to internet → auto-sync triggers
+3. Open library → see new material uploaded yesterday
+4. Download PDF → see download progress → open PDF offline
+5. Open assignments → see new assignment due in 3 days
+6. Submit assignment file → see "Submitted" confirmation
+7. Check marks → see last week's test marks
+
+### Happy Path: Teacher
+
+1. Login → see today's class schedule
+2. Mark attendance for Class 7A → 38 present, 2 absent
+3. Submit attendance → confirmation
+4. Upload chapter notes PDF → file validated → visible to students
+5. Open assignment list → see 25/38 submissions received
+6. Grade 3 submissions → marks saved
+7. View class progress report → download PDF
+
+### Happy Path: Parent
+
+1. Receive SMS: "Your ward was absent today"
+2. Open app → see child's attendance calendar
+3. View this month: 18 present, 2 absent
+4. Open marks tab → see latest test results
+5. See new assignment notification → view assignment details
+
+### Happy Path: Principal
+
+1. Login → dashboard: 3 teachers haven't submitted attendance
+2. Send reminder to those 3 teachers from dashboard
+3. View school-wide attendance: 94% today
+4. Approve new teacher's account
+5. View monthly report → download PDF
+6. Announce school holiday → all parents notified
+
+---
+
+## 5. Offline Mode Test Cases
+
+All tests run with phone in Airplane Mode after initial sync.
+
+| Test | Steps | Expected |
+|---|---|---|
+| View timetable offline | Airplane mode → open timetable | Shows last synced timetable |
+| Open downloaded PDF offline | Airplane mode → open downloaded file | PDF opens successfully |
+| Submit assignment offline | Airplane mode → submit file | "Saved offline, will sync when connected" shown |
+| Mark attendance offline | Airplane mode → mark attendance | Saved to queue |
+| Sync queue after reconnect | Submit offline actions → reconnect | All queued actions synced, confirmed |
+| Conflict on sync | Edit record offline, same record changed online, reconnect | Conflict resolution UI shown |
+| Storage full during download | Fill phone to 95% → attempt download | Warning shown, download blocked |
+| First login offline | Uninstall app → reinstall → try to login offline | "Internet required for first setup" shown |
+
+---
+
+## 6. Device Compatibility Test Matrix
+
+### Mandatory Physical Devices (QA Must Test On These)
+
+| Device | OS | RAM | Screen |
+|---|---|---|---|
+| Redmi 9A | Android 10 | 2GB | 6.53" |
+| Samsung Galaxy A03s | Android 11 | 3GB | 6.5" |
+| Realme C11 | Android 10 | 2GB | 6.5" |
+| Tecno Spark 6 | Android 10 | 2GB | 6.8" |
+| Any Android 6.0 device | Android 6.0 | 1GB | 5" |
+
+### Acceptance Criteria for Device Testing
+
+- App launches in under 5 seconds on all listed devices
+- No crash on any device during core flows
+- All text readable (no overflow, no truncation of critical text)
+- Gujarati text renders correctly on all devices
+- PDF opens within 10 seconds for a 5MB file on all devices
+- Offline mode functions on all devices
+
+---
+
+## 7. Load Test Scenarios
+
+### Scenario 1: Exam Result Day
+
+- 50,000 users open app within 30 minutes of result announcement
+- Expected: Server responds in under 3 seconds for 95% of requests
+- Pass criteria: Zero 500 errors, error rate below 1%
+
+### Scenario 2: Morning Attendance Spike
+
+- 1,000 teachers submit attendance between 9:00 and 9:15 AM
+- Expected: All submissions accepted within 5 minutes
+- Pass criteria: Zero lost submissions, queue depth recovers within 10 minutes
+
+### Scenario 3: File Upload Peak
+
+- 200 teachers upload files simultaneously on Monday morning
+- Expected: All uploads complete successfully
+- Pass criteria: No corrupted files, all files accessible by students
+
+### Scenario 4: Sustained Load
+
+- 5,000 concurrent users for 2 hours
+- Expected: CPU below 70%, memory stable, no memory leaks
+- Pass criteria: Response time stays under 2 seconds throughout
+
+---
+
+## 8. User Acceptance Testing (UAT)
+
+### UAT Participants Required
+
+| Role | Count | From |
+|---|---|---|
+| Students | 10 | 2 pilot schools |
+| Parents | 10 | Same schools |
+| Teachers | 6 | Both schools |
+| Principal | 2 | Both schools |
+| GMC Staff | 2 | GMC office |
+
+### UAT Duration
+
+2 weeks. First week: guided testing with QA present. Second week: independent use.
+
+### UAT Sign-Off Criteria
+
+- All P0 user stories work without any guidance from QA
+- Semi-literate users (parents, students) complete core tasks without needing help
+- No critical bugs reported by UAT participants
+- Gujarati language support confirmed adequate by Gujarati-medium users
+- Offline mode confirmed working on real devices in real network conditions
+
+---
+
+## 9. Pre-Launch Checklist
+
+### Technical
+
+- [ ] All P0 features tested and passing
+- [ ] Load test passed at 2× expected peak
+- [ ] Security penetration test completed, all P0 and P1 findings resolved
+- [ ] DPDP compliance audit completed
+- [ ] Backup and recovery tested — restore from backup successful
+- [ ] SMS delivery tested with real phone numbers on all network operators (Jio, Airtel, Vi, BSNL)
+- [ ] Offline mode tested on all 5 mandatory devices
+- [ ] App size under 15MB
+
+### Operational
+
+- [ ] Helpline number set up and staffed
+- [ ] DPO appointed and contact published in app
+- [ ] Incident response plan documented and team trained
+- [ ] Monitoring and alerting configured
+- [ ] Runbook for common issues prepared for support staff
+
+### Business
+
+- [ ] GMC officials trained on admin portal
+- [ ] Principal training completed in pilot schools
+- [ ] Teacher onboarding session conducted
+- [ ] Student and parent communication sent (SMS or notice board)
+- [ ] Feedback mechanism in place (in-app feedback + helpline)
