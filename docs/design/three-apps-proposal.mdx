@@ -1,6 +1,6 @@
 # GMC Education Portal — Three-App Architecture Proposal (Updated)
 
-**Version:** 1.2  
+**Version:** 1.3  
 **Date:** May 2026  
 **Status:** Under Review  
 **Prepared By:** Product & Architecture Team  
@@ -9,11 +9,11 @@
 
 ## Executive Summary
 
-Based on your feedback, we have optimized the architectural framework of the **GMC Education Portal**. We are consolidating the workflow of our five stakeholders into exactly **three specialized digital platforms** using neutral naming:
+Based on your feedback, we have optimized the architectural framework of the **GMC Education Portal**. We are consolidating the workflow of our five stakeholders into exactly **three specialized digital platforms** using neutral naming, and providing a web portal option for students and parents:
 
-1.  **Student & Parent App:** A single mobile app for the entire family.
-2.  **Teacher & Principal App:** A combined app for school-level staff.
-3.  **Admin Web Portal:** A dedicated web portal for central administrators.
+1.  **Student & Parent App & Web Portal:** A single mobile app & responsive web portal for the entire family.
+2.  **Teacher & Principal App:** A combined mobile, tablet, and web app for school-level staff.
+3.  **Admin Web Portal:** A dedicated desktop web portal for central administrators.
 
 ```mermaid
 graph TD
@@ -26,7 +26,7 @@ graph TD
     end
 
     subgraph "3 Specialized Apps"
-        App1["App 1: Student & Parent App<br/>(Mobile & PWA)"]
+        App1["App 1: Student & Parent App<br/>(Mobile, PWA, & Web Portal)"]
         App2["App 2: Teacher & Principal App<br/>(Mobile, Tablet, & Web)"]
         App3["App 3: Admin Web Portal<br/>(Desktop Web)"]
     end
@@ -44,24 +44,24 @@ graph TD
 
 ---
 
-## 1. App 1: Student & Parent App
-*A unified, lightweight, offline-first mobile application designed for shared family devices.*
+## 1. App 1: Student & Parent App & Web Portal
+*A unified, lightweight, offline-first mobile application and responsive web portal designed for shared family devices and browsers.*
 
 > [!NOTE]
-> **Consolidation Rationale:** Many students share a single smartphone with their parents. Combining Student and Parent portals into one application with a secure profile-switcher keeps storage footprints minimal, prevents confusion, and eliminates double-installation friction.
+> **Consolidation Rationale:** Many students share a single smartphone with their parents. Combining Student and Parent portals into one application with a secure profile-switcher keeps storage footprints minimal, prevents confusion, and eliminates double-installation friction. The accompanying web portal ensures families can also access their learning dashboard using desktops, laptops, or mobile browsers.
 
 ### Key Technical Specs
-*   **Target Devices:** Low-end Android smartphones (Android 6.0+, 1GB RAM) & progressive web app (PWA).
-*   **Target Install Size:** `< 12 MB` (extremely optimized asset delivery).
+*   **Target Devices:** Low-end Android smartphones (Android 6.0+, 1GB RAM), progressive web app (PWA), and modern web browsers (Chrome, Firefox, Safari on desktops or mobile).
+*   **Target Install Size:** `< 12 MB` for mobile app; web portal is instant-load.
 *   **Primary Languages:** Gujarati (Default), Hindi, English.
-*   **Connectivity:** Offline-first. 100% of downloaded materials and queued assignments work without internet.
+*   **Connectivity:** Offline-first on mobile/PWA (100% offline access for downloaded materials and queued assignments). Always-online responsive design on the desktop Web Portal.
 
 ### Core Features
-*   **Offline Material Library (F-ST-001):** Browse and search downloaded PDF notes and textbooks.
+*   **Offline Material Library (F-ST-001):** Browse and search downloaded PDF notes and textbooks (web portal supports online viewing & downloading).
 *   **In-App File Viewer (F-ST-002):** Lightweight viewer supporting PDFs, PNGs, and JPEGs without third-party dependencies.
 *   **Daily & Weekly Timetable (F-ST-005):** Visual layout of school periods and teacher schedules.
-*   **Assignment Submission (F-ST-008):** Quick camera photo-capture of handwritten homework pages.
-*   **Offline Queue Manager (F-ST-009):** Automatic background syncing of submissions once connectivity is detected.
+*   **Assignment Submission (F-ST-008):** Quick camera photo-capture or file-upload (PDF/Image) of handwritten homework pages.
+*   **Offline Queue Manager (F-ST-009):** Automatic background syncing of submissions once connectivity is detected (on mobile client).
 *   **Secure Profile Switcher (F-PA-007):** Swipe-to-switch between the student's study desk and the parent's dashboard using a secure secondary PIN.
 *   **Parent's Attendance Calendar (F-PA-005):** Simplified Gujarati color-coded calendar highlighting daily attendance.
 *   **Parent's Academic Progress Card (F-PA-006):** At-a-glance reports of marks and teacher feedback.
@@ -69,10 +69,10 @@ graph TD
 ---
 
 ## 2. App 2: Teacher & Principal App
-*A unified, collaborative mobile and tablet application that connects school leadership and teaching staff.*
+*A unified, collaborative mobile, tablet, and web application that connects school leadership and teaching staff.*
 
 > [!IMPORTANT]
-> **Consolidation Rationale:** Combining Teachers and Principals into one application dramatically improves communication and speeds up approval loops. Since both stakeholders operate at the school level and share the same physical environment, a single app with internal role switches enables teachers to teach and principals to oversee from their phones or school tablets.
+> **Consolidation Rationale:** Combining Teachers and Principals into one application dramatically improves communication and speeds up approval loops. Since both stakeholders operate at the school level and share the same physical environment, a single app with internal role switches enables teachers to teach and principals to oversee from their phones, school tablets, or web browsers.
 
 ### Key Technical Specs
 *   **Target Devices:** Mid-end Android smartphones, school-allocated Android tablets, and responsive web browsers.
@@ -118,13 +118,13 @@ graph TD
 
 ## Summary comparison of the 3-App Strategy
 
-| Metric / Dimension | App 1: Student & Parent App | App 2: Teacher & Principal App | App 3: Admin Web Portal |
+| Metric / Dimension | App 1: Student & Parent App & Web Portal | App 2: Teacher & Principal App | App 3: Admin Web Portal |
 |---|---|---|---|
 | **Primary Users** | Students & Parents | Teachers & Principals | GMC Central Administrators |
-| **Primary Device** | Low-end Mobile (Android/PWA) | Mobile, Tablet, & Web | Desktop & Laptop Web Portal |
-| **Connectivity Mode** | Offline-First (Local Sync) | Offline-First (Local Sync) | Always-Online |
-| **Install Budget** | `< 12 MB` | `< 18 MB` | No Install (Web Portal) |
-| **Primary Goal** | Equal learning & status transparency | Smooth teaching and school administration | District compliance & analytics |
+| **Primary Device** | Mobile (Android/PWA) & Web Portal | Mobile, Tablet, & Web | Desktop & Laptop Web Portal |
+| **Connectivity Mode** | Offline-First (Mobile) / Always-Online (Web) | Offline-First (Local Sync) | Always-Online |
+| **Install Budget** | `< 12 MB` (Mobile App) / Instant (Web) | `< 18 MB` (Mobile App) / Instant (Web) | No Install (Web Portal) |
+| **Primary Goal** | Equal learning & status transparency on any device | Smooth teaching and school administration | District compliance & analytics |
 
 ---
 
