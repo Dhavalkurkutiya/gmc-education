@@ -1,0 +1,937 @@
+# GMC Education Portal — School-Controlled Access Flows
+
+**Version:** 1.0
+**Last Updated:** May 2026
+**Owner:** GMC Product Team
+
+---
+
+## Core Principle
+
+> No user can create their own account. Every account is created from the top down — GMC creates schools, schools create principals, principals create teachers, teachers create students. Parents get access only through their registered mobile number linked to their child.
+
+This is not just a design choice. It is a security requirement for government student data.
+
+---
+
+## Access Hierarchy
+
+```
+GMC Admin
+    ↓ creates
+School (with Principal)
+    ↓ creates
+Teachers
+    ↓ creates / imports
+Students
+    ↓ linked by mobile number
+Parents
+```
+
+No one enters this chain from the side. No self-registration. No invite links that anyone can use. No open signup page.
+
+---
+
+# SCENARIO 1 — New School Year Setup
+
+**When it happens:** Every June before the academic year starts.
+
+**Who does it:** GMC Admin → Principal → Teachers
+
+```
+STEP 1 — GMC Admin runs New Year Migration
+
+GMC Admin Portal → Settings → New Academic Year
+
+System asks:
+"Start new year 2026-27?
+This will:
+- Archive all 2025-26 student data (read-only)
+- Promote passing students to next class
+- Remove graduated Class 10 students
+- Keep all teacher accounts active
+Confirm?"
+
+Admin types: "2026-27" to confirm
+
+↓
+
+System processes:
+- Class 6 students → Class 7
+- Class 7 students → Class 8
+- Class 8 students → Class 9
+- Class 9 students → Class 10
+- Class 10 students → Archived (graduated)
+- Failed students → Held back (flagged for principal review)
+
+↓
+
+STEP 2 — GMC Admin imports new Class 6 admissions
+
+New students CSV uploaded:
+Name, Roll Number, Class, Section, Parent Mobile
+
+System creates accounts for all new Class 6 students
+Login SMS sent to parent numbers:
+"Your child [Name] has been enrolled at [School].
+Student login — Roll: [XXX] PIN: [XXXX]
+Download GMC Shiksha: [link]"
+
+↓
+
+STEP 3 — Principal reviews held-back students
+
+Principal Portal → Students → Held Back (8 students)
+
+For each student:
+- Confirm held back → student stays in same class
+- Override to promote → student moves up with note
+
+↓
+
+STEP 4 — Teachers assigned to new classes
+
+Principal → Teachers → Assign Classes
+Rameshbhai Patel → Maths → Class 8A, 8B, 9A
+Sunita Ben Shah → Science → Class 7A, 7B, 8A
+
+↓
+
+STEP 5 — New academic year is live
+
+All students can log in with new class assignments
+Timetables updated
+Previous year data archived but accessible to principal
+
+✅ School year ready — 0 manual account creation needed
+```
+
+---
+
+# SCENARIO 2 — Student Joins Mid-Year (New Admission)
+
+**When it happens:** A family moves to Gandhinagar in October. Child needs to join Class 8B immediately.
+
+**Who does it:** Principal → adds student → student gets access same day
+
+```
+Parent visits school with transfer certificate
+
+↓
+
+Principal verifies documents
+
+↓
+
+Principal Portal → Students → Add New Student
+
+Form:
+Full Name: Aryan Mehta
+Roll Number: 2024-081 (assigned by principal)
+Class: 8B
+Section: B
+Date of Birth: 12 March 2012
+Parent Mobile: 94265 XXXXX
+Previous School: GPS Ahmedabad No. 12
+
+Save
+
+↓
+
+System immediately:
+- Creates student account
+- Assigns to Class 8B
+- Links parent mobile number
+- Generates temporary PIN: 6284
+
+↓
+
+SMS to parent mobile:
+"Aryan Mehta has been enrolled at GPS No. 5.
+Student App Login:
+Roll Number: 2024-081
+Temporary PIN: 6284
+Download: [link]
+Change your PIN on first login."
+
+↓
+
+Student arrives next morning
+Opens app, logs in with roll number + PIN
+Sets new PIN
+Sees Class 8B timetable, notes, assignments
+
+↓
+
+Class 8B teacher sees Aryan in attendance list
+immediately — no delay
+
+✅ Student has full access on day of admission
+   No IT department involved
+   Principal did everything in 3 minutes
+```
+
+---
+
+# SCENARIO 3 — Student Leaves School Mid-Year
+
+**When it happens:** Family relocates. Student leaves in November.
+
+**Who does it:** Principal deactivates the student
+
+```
+Parent informs school of leaving
+
+↓
+
+Principal Portal → Students → Search: Aryan Mehta
+
+Student profile:
+Name: Aryan Mehta
+Class: 8B
+Status: Active
+
+"Deactivate Student" button
+
+↓
+
+Confirmation:
+"Deactivating Aryan Mehta will:
+- Block app login immediately
+- Preserve all academic records
+- Generate Transfer Certificate data
+Reason (required): [Family relocation]
+Confirm?"
+
+Principal confirms
+
+↓
+
+System:
+- Login blocked immediately
+- All data preserved (marks, attendance, assignments)
+- Student removed from teacher attendance lists
+- Parent SMS: "Aryan Mehta's account has been
+  deactivated as requested. Records preserved."
+
+↓
+
+If student tries to login:
+"Your account has been deactivated.
+Contact your school for more information."
+
+↓
+
+Transfer Certificate:
+Principal Portal → Reports → Transfer Certificate → Aryan Mehta
+PDF generated with attendance record and marks history
+
+✅ Clean exit — data preserved, access removed
+```
+
+---
+
+# SCENARIO 4 — Teacher Transfers to Another School
+
+**When it happens:** Government transfer order received. Teacher moves from GPS No. 5 to GPS No. 12.
+
+**Who does it:** GMC Admin processes the transfer
+
+```
+GMC Admin receives transfer order
+
+↓
+
+Admin Portal → Teachers → Search: Rameshbhai Patel (GPS No. 5)
+
+Teacher profile shows:
+School: GPS No. 5
+Classes: Maths 8A, 8B, 9A
+Materials uploaded: 47
+Assignments created: 23
+
+"Transfer Teacher" button
+
+↓
+
+Form:
+From School: GPS No. 5
+To School: GPS No. 12
+Effective Date: 1 June 2026
+Reason: Government Transfer Order No. GTR2026-441
+
+Confirm
+
+↓
+
+System at effective date:
+- Access to GPS No. 5 revoked
+- Account moved to GPS No. 12
+- GPS No. 5 Principal notified:
+  "Rameshbhai Patel has been transferred.
+  Please assign a replacement teacher to
+  Maths 8A, 8B, 9A."
+- GPS No. 12 Principal notified:
+  "Rameshbhai Patel joins your school from 1 June."
+- Teacher notified via SMS
+
+↓
+
+Teacher's uploaded materials at GPS No. 5:
+Option shown to Principal:
+"Keep materials accessible to Class 8 students? Yes / No"
+Principal selects Yes — materials stay, teacher name greyed
+
+↓
+
+Teacher logs in on 1 June:
+Sees GPS No. 12 dashboard
+GPS No. 5 data — read-only archive view only
+
+✅ Clean transfer — no data lost, both schools informed
+```
+
+---
+
+# SCENARIO 5 — Parent Mobile Number Changes
+
+**When it happens:** Parent gets a new SIM card. Old number no longer receives SMS.
+
+**Who does it:** Teacher updates it — parent cannot do this themselves (security reason)
+
+```
+Parent visits school and informs class teacher:
+"My number has changed to 98765 XXXXX"
+
+↓
+
+Teacher verifies parent identity in person
+
+↓
+
+Teacher App → Students → Rekha Sharma → Edit
+
+Current parent mobile: 94265 XXXXX
+New parent mobile: 98765 XXXXX
+
+Reason (required): Parent requested number change
+in person — verified identity
+
+Save
+
+↓
+
+System:
+- Sends OTP to NEW number: "Verify new number: 847291"
+- Parent enters OTP to confirm
+- Only after OTP verified — number updated
+- Old number receives final SMS:
+  "The mobile number on Rekha Sharma's account
+  at GPS No. 5 has been changed.
+  If this was not you, contact school immediately."
+- Change logged in audit trail with teacher ID
+
+↓
+
+If teacher tries to change without seeing parent:
+Same process — but audit log shows teacher ID
+Principal can review suspicious changes
+
+✅ Number updated securely — both old and new number informed
+   Audit trail prevents unauthorized changes
+```
+
+---
+
+# SCENARIO 6 — Principal Retirement or Replacement
+
+**When it happens:** Current principal retires. New principal takes charge.
+
+**Who does it:** GMC Admin
+
+```
+GMC Admin receives official order
+
+↓
+
+Admin Portal → Schools → GPS No. 5 → Principal
+
+Current Principal: Jayaben Desai (EMP20050001)
+"Replace Principal" button
+
+↓
+
+Form:
+New Principal Employee ID: EMP20050089
+New Principal Name: Maheshbhai Trivedi
+Effective Date: 1 July 2026
+Outgoing Principal: Jayaben Desai
+
+Confirm
+
+↓
+
+System on effective date:
+- Jayaben Desai — principal role removed
+  (account converted to retired/inactive)
+- Maheshbhai Trivedi — principal role activated
+- SMS to Maheshbhai:
+  "You have been assigned as Principal of GPS No. 5
+  on GMC Shiksha Portal.
+  Login: EMP20050089 | Reset password at: [link]"
+- All pending approvals (attendance edits, marks edits)
+  transferred to new principal
+- School data fully accessible to new principal
+
+↓
+
+Jayaben Desai tries to login after retirement:
+"Your account has been deactivated.
+Contact GMC Education Department for assistance."
+
+↓
+
+Historical data:
+All actions taken by Jayaben Desai remain in audit log
+Permanently — with her employee ID
+New principal cannot edit or delete old records
+
+✅ Smooth handover — no data gap, no access overlap
+```
+
+---
+
+# SCENARIO 7 — Student Tries to Create Own Account
+
+**When it happens:** A student hears about the portal. Goes to Play Store, downloads app. Tries to sign up without going through school.
+
+**Who does it:** Nobody should be able to do this.
+
+```
+Student downloads GMC Shiksha app
+
+↓
+
+Opens app
+
+↓
+
+Login screen:
+[Roll Number field]
+[PIN field]
+[Login button]
+[Forgot PIN?]
+
+NO "Sign Up" button
+NO "Create Account" button
+NO "Register" option
+
+↓
+
+Student tries to guess a roll number + PIN
+
+↓
+
+After 5 wrong attempts:
+"Too many incorrect attempts.
+Try again after 30 minutes."
+IP address flagged
+
+↓
+
+Student tries different roll number
+
+↓
+
+System:
+- All login attempts logged
+- Repeated failed attempts from same device flagged
+- If pattern detected (brute force attempt):
+  Device IP blocked for 24 hours
+  GMC Admin alerted
+
+↓
+
+There is no way to create an account without
+a school-issued roll number and PIN
+
+✅ Self-registration is architecturally impossible
+   Not just hidden — it does not exist
+```
+
+---
+
+# SCENARIO 8 — Someone Tries to Access Another Student's Data
+
+**When it happens:** A student finds out a classmate's roll number and tries to guess their PIN.
+
+```
+Student knows: Roll Number 2024-045 (Rekha Sharma)
+Starts guessing PINs: 0000, 0001, 0002...
+
+↓
+
+Attempt 1: Wrong
+Attempt 2: Wrong
+Attempt 3: Wrong
+Attempt 4: Wrong
+Attempt 5: Wrong
+
+↓
+
+Account locked for 30 minutes
+Message: "Too many incorrect attempts.
+Account locked until 10:45 AM."
+
+↓
+
+After 30 minutes — locked again on next 5 failures
+
+↓
+
+After 3 lock cycles in one day:
+- Account flagged for unusual activity
+- Principal notified: "Rekha Sharma's account
+  had multiple failed login attempts today.
+  Possible unauthorized access attempt."
+
+↓
+
+Rekha's actual login (from her device) is unaffected
+She can still login normally
+
+↓
+
+If attacker somehow gets correct PIN and logs in
+from an unknown device:
+- Previous session terminated
+- Rekha sees on next login:
+  "You were logged in from a different device.
+  If this was not you, contact your teacher."
+
+✅ Brute force blocked
+   Victim account protected
+   Principal informed
+```
+
+---
+
+# SCENARIO 9 — Teacher Accidentally Added to Wrong School
+
+**When it happens:** GMC Admin imports teacher data. One teacher's school UDISE code entered incorrectly. Teacher ends up in GPS No. 15 instead of GPS No. 5.
+
+```
+Teacher Rameshbhai logs in
+
+↓
+
+Sees GPS No. 15 dashboard
+Does not recognize any student names
+Attendance list shows unknown students
+
+↓
+
+Calls GMC helpline or contacts own principal
+
+↓
+
+Principal of GPS No. 5 also notices:
+"Rameshbhai is not appearing in my teacher list"
+Raises issue through Principal Portal → Support
+
+↓
+
+GMC Admin sees support ticket
+
+Admin Portal → Teachers → Rameshbhai Patel
+
+Current school: GPS No. 15 (UDISE: 24150112015)
+Correct school: GPS No. 5 (UDISE: 24150112005)
+
+"Correct School Assignment" button
+Moves teacher to GPS No. 5
+
+↓
+
+Any attendance or data entered at GPS No. 15
+while wrongly assigned:
+- Flagged in audit log
+- GPS No. 15 principal notified to review
+- Data can be voided if no legitimate entries
+
+↓
+
+Rameshbhai logs in again:
+Now sees GPS No. 5 — correct students
+
+✅ Correctable — audit trail shows what happened when
+```
+
+---
+
+# SCENARIO 10 — Duplicate Student Account Created
+
+**When it happens:** Student was added manually by teacher. Later, GMC Admin does bulk import — same student imported again. Two accounts exist for one student.
+
+```
+Bulk import runs
+
+↓
+
+System checks each row:
+Roll Number 2024-081 + School GPS No. 5 already exists
+
+↓
+
+Import does NOT create duplicate
+Instead — flags the row:
+
+Error report:
+Row 234: Roll Number 2024-081 already exists
+at GPS No. 5 (Aryan Mehta, Class 8B)
+Action: Skipped — no duplicate created
+
+↓
+
+Admin reviews error report:
+- If existing account is correct → no action needed
+- If existing account has wrong data →
+  admin updates existing account directly
+
+↓
+
+Student has only one account — no confusion
+
+✅ Deduplication built into import process
+```
+
+---
+
+# SCENARIO 11 — School Internet Down for Entire Week
+
+**When it happens:** School's internet service provider has an outage. No internet for 5 working days.
+
+```
+Monday — Internet goes down at GPS No. 5
+
+↓
+
+All teachers open app — offline mode activates automatically
+
+App banner:
+"No internet connection. Working in offline mode.
+Data will sync when internet returns."
+
+↓
+
+MONDAY TO FRIDAY:
+Teachers mark attendance — saved locally each day
+Teachers upload notes — queued for upload
+Students download previously cached content
+Students submit assignments — queued locally
+
+↓
+
+Friday evening — internet restored
+
+↓
+
+Background sync starts automatically:
+Processing queue: 5 days × 20 teachers × 3 classes
+= ~300 attendance records to sync
+
+Sync progress shown:
+"Syncing offline data: 47 of 312 items..."
+
+Priority order:
+1. Attendance records (oldest first)
+2. Assignment submissions
+3. File uploads
+4. Grade entries
+
+↓
+
+Takes approximately 8 minutes to sync all 312 items
+
+↓
+
+Parents receive 5 days of absence SMS all at once:
+System detects bulk catch-up scenario —
+bundles into one SMS:
+"Attendance update for Rekha Sharma:
+Mon 19 May: Present
+Tue 20 May: Absent
+Wed 21 May: Present
+Thu 22 May: Present
+Fri 23 May: Present"
+
+(Not 5 separate SMS — one bundled summary)
+
+↓
+
+Principal sees all 5 days attendance populated
+Reports accurate
+
+✅ Zero data lost
+   5 days of offline work synced successfully
+   Parents informed without SMS flood
+```
+
+---
+
+# SCENARIO 12 — Wrong Marks Published — Need Correction
+
+**When it happens:** Teacher enters marks and publishes. Realizes one student's marks were entered incorrectly — 35 entered instead of 85. Students and parents already notified.
+
+```
+Teacher realizes mistake — Rohan's marks wrong
+Entered: 35/100
+Correct: 85/100
+
+↓
+
+Teacher App → Marks → Annual Exam → Rohan Joshi
+
+"Request Edit" button (marks already published)
+
+Form:
+Current marks: 35
+Correct marks: 85
+Reason: Transcription error — wrote 35 instead of 85
+Supporting note: Paper copy available for verification
+
+Submit request
+
+↓
+
+Principal gets notification:
+"Marks edit request — Rameshbhai Patel
+Student: Rohan Joshi
+Maths Annual Exam: 35 → 85
+Reason: Transcription error"
+
+↓
+
+Principal reviews — checks physical paper if needed
+
+Option A: Approve
+Option B: Reject with reason
+
+↓
+
+Principal approves
+
+↓
+
+System:
+- Marks updated: 35 → 85
+- Rohan notified: "Your Maths marks have been
+  corrected from 35 to 85. Updated by your teacher
+  with principal approval."
+- Parent SMS: "Correction: Rohan's Maths marks
+  updated to 85/100."
+- Audit log: original value, new value,
+  teacher ID, principal ID, timestamp — permanent record
+
+↓
+
+If principal rejects:
+Teacher notified with principal's reason
+Original marks remain
+Teacher must present physical evidence to principal
+for reconsideration
+
+✅ Correction possible but accountable
+   Audit trail permanent — no silent edits
+```
+
+---
+
+# SCENARIO 13 — GMC Admin Sends Wrong District Announcement
+
+**When it happens:** Admin drafts announcement for Gandhinagar schools but accidentally selects all Gujarat instead of just GMC schools. Or sends wrong message.
+
+```
+Admin types announcement:
+"Holiday on 15 June for GPS School inspection"
+
+Accidentally selects: All Schools (500+ schools)
+Instead of: GMC Gandhinagar Schools (87 schools)
+
+↓
+
+Before sending — confirmation screen:
+"You are about to send this announcement to:
+ALL SCHOOLS — 512 schools
+Estimated SMS: 48,000 parents
+
+Is this correct? [Yes, Send] [No, Go Back]"
+
+↓
+
+Admin sees 512 schools — realizes mistake
+"No, Go Back"
+
+Changes selection to: GMC Gandhinagar — 87 schools
+
+Sends correctly
+
+---
+
+If admin sends wrong message before catching it:
+
+↓
+
+Sent announcement shows in Admin Portal with:
+"Recall" button (available for 5 minutes after send)
+
+Admin taps Recall:
+- In-app announcement hidden for all users
+- SMS cannot be recalled (already delivered)
+- Follow-up SMS sent:
+  "Correction to previous message:
+  The holiday announcement was sent in error.
+  Please ignore previous message."
+- All actions logged in audit trail
+
+↓
+
+After 5 minutes — recall not possible
+Admin must send correction announcement manually
+
+✅ Confirmation step prevents most mistakes
+   5-minute recall window for quick errors
+   SMS mistakes require follow-up correction
+```
+
+---
+
+# SCENARIO 14 — Student Device Lost or Stolen
+
+**When it happens:** Student's phone is stolen. Someone might access their academic account.
+
+```
+Student realizes phone is stolen
+
+↓
+
+Goes to class teacher next morning
+
+↓
+
+Teacher App → Students → [Student Name] → Security
+
+"Force logout all devices" button
+
+Tap → Confirm
+
+↓
+
+All active sessions for that student terminated immediately
+Anyone on stolen phone: auto logged out
+"Session expired. Please login again."
+
+↓
+
+Student gets new/borrowed phone
+Logs in with roll number + PIN
+Active session on new device
+
+↓
+
+If student suspects PIN is compromised:
+Teacher resets PIN → New temporary PIN via SMS
+Student sets new PIN on first login
+
+✅ Account secured within minutes of reporting
+   No IT department needed — teacher handles it
+```
+
+---
+
+# SCENARIO 15 — Annual Audit by Government Inspector
+
+**When it happens:** Government education inspector visits. Wants to verify portal data matches physical registers.
+
+```
+Inspector arrives at GPS No. 5
+
+↓
+
+Principal logs into portal on desktop
+
+↓
+
+Inspector asks: "Show me April attendance for Class 8A"
+
+Principal → Reports → Attendance → Class 8A → April 2026
+
+Detailed report shows:
+- Each student
+- Each day
+- Present/Absent/Holiday
+- Teacher who submitted
+- Submission timestamp
+- Any edits made — with reason and approver
+
+↓
+
+Inspector asks: "Were any records edited after submission?"
+
+Audit trail shows:
+"3 edits made in April:
+1. Rekha Sharma — 12 Apr — Absent → Present
+   Reason: Marked wrong by mistake
+   Edited by: Rameshbhai (within 24hrs — auto approved)
+   
+2. Rohan Joshi — 18 Apr — Present → Absent  
+   Reason: Student left early, teacher forgot to mark
+   Edited by: Sunita Ben (after 24hrs)
+   Approved by: Principal Jayaben Desai"
+
+↓
+
+Inspector satisfied — transparent audit trail
+
+↓
+
+Inspector asks for export:
+"PDF download" → Official format report
+
+↓
+
+Inspector asks about a specific student's marks history:
+Principal → Student Profile → Rekha Sharma → All Records
+
+Complete academic history:
+- All attendance records
+- All exam marks
+- All assignment grades
+- All edits with reasons
+- Login history
+
+↓
+
+✅ Complete transparency
+   Inspector can verify everything
+   No data can be hidden or silently changed
+```
+
+---
+
+## Summary — Why School-Controlled Access Works
+
+| Risk | How It Is Prevented |
+|---|---|
+| Random person creating fake student account | No signup page exists anywhere |
+| Student accessing another student's data | Account lock after 5 attempts, brute force detection |
+| Parent seeing wrong child's data | Parent linked only to registered child's roll number |
+| Teacher accessing another school's data | Role-based access — school-scoped at API level |
+| Data manipulation without accountability | Every edit requires reason, approver, audit log entry |
+| Account persisting after student leaves | Principal deactivates — immediate effect |
+| Teacher transfer data leak | Transfer process preserves data, revokes cross-school access |
+| Inspector finding discrepancies | Full audit trail — every action logged permanently |
+
+---
+
+*These flows represent the complete access lifecycle of the GMC Education Portal. Every new feature built must fit within this hierarchy. If a feature requires bypassing any level of this chain, it must be reviewed by the Tech Lead and PM before implementation.*
