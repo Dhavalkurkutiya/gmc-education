@@ -19,11 +19,11 @@ DevOps is how code goes from developer's laptop to production server — safely,
 | GitHub | Code repository | Industry standard, free, best CI/CD integration |
 | GitHub Actions | CI/CD pipeline | Free, Flutter support built-in, simple YAML config |
 | Docker | Containerization | Same environment everywhere — no "works on my machine" |
-| AWS Mumbai | Production hosting | India servers, 99.9% SLA, auto-scaling |
-| AWS RDS | Managed PostgreSQL | Automated backups, patching, failover |
-| AWS ElastiCache | Managed Redis | No manual Redis management |
-| AWS S3 | File storage | PDFs, images — cheap, durable |
-| AWS CloudFront | CDN | Static assets fast globally |
+| Azure Central India | Production hosting | India servers (Pune), 99.9% SLA, auto-scaling |
+| Azure Database for PostgreSQL | Managed PostgreSQL | Automated backups, patching, failover |
+| Azure Cache for Redis | Managed Redis | No manual Redis management |
+| Azure Blob Storage | File storage | PDFs, images — cheap, durable |
+| Azure CDN / Front Door | CDN | Static assets fast globally |
 | Grafana + Prometheus | Monitoring | Open source, powerful dashboards |
 | Sentry | Error tracking | Crash reports from Flutter apps |
 
@@ -38,14 +38,14 @@ Developer Laptop
       ↓
   Development (local Docker)
       ↓
-  Staging (AWS — mirrors production)
+  Staging (Azure — mirrors production)
       ↓
-  Production (AWS — real users)
+  Production (Azure — real users)
 ```
 
 **Development** — Developer ke apne machine pe. Docker Compose se sab locally chalta hai.
 
-**Staging** — AWS pe production ka exact copy. Har feature yahan test hoti hai pehle. Real data nahi — anonymised test data.
+**Staging** — Azure pe production ka exact copy. Har feature yahan test hoti hai pehle. Real data nahi — anonymised test data.
 
 **Production** — Real users. Real data. Koi bhi untested change yahan nahi aata.
 
@@ -175,26 +175,26 @@ volumes:
 
 ---
 
-## AWS Infrastructure
+## Azure Infrastructure
 
 ### Architecture Diagram (Text)
 
 ```
 Internet
     ↓
-AWS CloudFront (CDN)
+Azure CDN / Front Door
     ↓
-Application Load Balancer
+Azure Application Gateway
     ↓          ↓
-API Server 1   API Server 2   (Auto Scaling Group)
+API Server 1   API Server 2   (Virtual Machine Scale Set / App Service)
     ↓
-AWS RDS PostgreSQL (Primary)
+Azure Database for PostgreSQL (Primary)
     ↓
-AWS RDS PostgreSQL (Read Replica) — Reports ke liye
+Azure Database for PostgreSQL (Read Replica) — Reports ke liye
     ↓
-AWS ElastiCache Redis
+Azure Cache for Redis
     ↓
-AWS S3 (Files — PDFs, Images)
+Azure Blob Storage (Files — PDFs, Images)
 ```
 
 ### Why Two API Servers
@@ -214,12 +214,12 @@ AWS S3 (Files — PDFs, Images)
 
 ## Database Strategy
 
-### PostgreSQL on AWS RDS
+### PostgreSQL on Azure Database for PostgreSQL (Flexible Server)
 
 - **Automated daily backup** — 7 days retained
 - **Monthly backup** — 12 months retained
 - **Point-in-time recovery** — kisi bhi minute pe restore kar sakte hain last 7 days mein
-- **Multi-AZ deployment** — ek availability zone down ho toh automatic failover 60 seconds mein
+- **Zone-redundant HA deployment** — ek availability zone down ho toh automatic failover 60 seconds mein
 - **Read replica** — GMC Admin reports read replica se run honge — primary database pe load nahi
 
 ### Database Migration Strategy
@@ -318,7 +318,7 @@ Flutter apps mein Sentry SDK add karo.
 **Secrets Management**
 - API keys, database passwords — GitHub Secrets mein rakho
 - Code mein kabhi nahi — `.env` bhi `.gitignore` mein hona chahiye
-- AWS Secrets Manager production pe
+- Azure Key Vault production pe
 
 **Dependency Scanning**
 - `npm audit` aur `dart pub outdated` CI mein run hota hai
@@ -329,9 +329,9 @@ Flutter apps mein Sentry SDK add karo.
 - Critical vulnerability ho toh deploy block hota hai
 
 **Access Control**
-- Production AWS access — sirf Tech Lead aur DevOps ko
+- Production Azure access — sirf Tech Lead aur DevOps ko
 - Developers staging tak access
-- All AWS actions CloudTrail mein logged
+- All Azure actions Activity Log mein logged
 
 ---
 
@@ -341,9 +341,9 @@ Flutter apps mein Sentry SDK add karo.
 
 | Data | Frequency | Retention | Location |
 |---|---|---|---|
-| PostgreSQL | Daily automated | 30 days | AWS S3 different region |
-| PostgreSQL | Monthly | 12 months | AWS S3 different region |
-| S3 files (PDFs) | Versioning enabled | Indefinite | AWS S3 |
+| PostgreSQL | Daily automated | 30 days | Azure Blob Storage different region |
+| PostgreSQL | Monthly | 12 months | Azure Blob Storage different region |
+| Blob files (PDFs) | Versioning enabled | Indefinite | Azure Blob Storage |
 | Redis | Not backed up | — | Reconstructed from DB |
 
 ### Recovery Time Objectives
@@ -351,7 +351,7 @@ Flutter apps mein Sentry SDK add karo.
 | Scenario | Target Recovery Time |
 |---|---|
 | API server crash | Under 2 minutes (auto scaling) |
-| Database failure | Under 5 minutes (RDS Multi-AZ failover) |
+| Database failure | Under 5 minutes (PostgreSQL Zone-redundant HA failover) |
 | Full region outage | Under 4 hours (restore from backup) |
 | Accidental data deletion | Under 1 hour (point-in-time restore) |
 
@@ -361,7 +361,7 @@ Flutter apps mein Sentry SDK add karo.
 1. Alert received — Tech Lead notified
 2. Assess — what failed, how much data affected
 3. Communicate — GMC informed within 30 minutes
-4. Restore — RDS point-in-time recovery
+4. Restore — Azure PostgreSQL point-in-time recovery
 5. Verify — data integrity check
 6. Resume — traffic switched back
 7. Post-mortem — what happened, how to prevent
