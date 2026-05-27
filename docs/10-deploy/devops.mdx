@@ -1,0 +1,416 @@
+# GMC Education Portal — DevOps Strategy
+
+**Version:** 1.0
+**Last Updated:** May 2026
+**Owner:** GMC Product Team
+
+---
+
+## Overview
+
+DevOps is how code goes from developer's laptop to production server — safely, automatically, and reliably. Ye document define karta hai ki GMC portal ke liye CI/CD pipeline kaise kaam karega, kahan deploy hoga, aur disaster ke time kya hoga.
+
+---
+
+## Tools Chosen
+
+| Tool | Purpose | Why |
+|---|---|---|
+| GitHub | Code repository | Industry standard, free, best CI/CD integration |
+| GitHub Actions | CI/CD pipeline | Free, Flutter support built-in, simple YAML config |
+| Docker | Containerization | Same environment everywhere — no "works on my machine" |
+| AWS Mumbai | Production hosting | India servers, 99.9% SLA, auto-scaling |
+| AWS RDS | Managed PostgreSQL | Automated backups, patching, failover |
+| AWS ElastiCache | Managed Redis | No manual Redis management |
+| AWS S3 | File storage | PDFs, images — cheap, durable |
+| AWS CloudFront | CDN | Static assets fast globally |
+| Grafana + Prometheus | Monitoring | Open source, powerful dashboards |
+| Sentry | Error tracking | Crash reports from Flutter apps |
+
+---
+
+## Environments
+
+Teen environments hain — development, staging, production. Koi bhi change directly production pe nahi jaata.
+
+```
+Developer Laptop
+      ↓
+  Development (local Docker)
+      ↓
+  Staging (AWS — mirrors production)
+      ↓
+  Production (AWS — real users)
+```
+
+**Development** — Developer ke apne machine pe. Docker Compose se sab locally chalta hai.
+
+**Staging** — AWS pe production ka exact copy. Har feature yahan test hoti hai pehle. Real data nahi — anonymised test data.
+
+**Production** — Real users. Real data. Koi bhi untested change yahan nahi aata.
+
+---
+
+## CI/CD Pipeline — GitHub Actions
+
+### Backend Pipeline (NestJS API)
+
+```
+Code push to GitHub
+        ↓
+Automated Tests run
+  - Unit tests
+  - Integration tests
+  - Lint check
+        ↓
+  Tests fail? → Build stopped. Developer notified.
+        ↓
+  Tests pass? → Docker image built
+        ↓
+  Push to main branch? → Deploy to Staging automatically
+        ↓
+  Manual approval by Tech Lead
+        ↓
+  Deploy to Production
+```
+
+### Flutter App Pipeline
+
+```
+Code push to GitHub
+        ↓
+Flutter analyze (lint check)
+        ↓
+Flutter test (unit + widget tests)
+        ↓
+  Tests fail? → Build stopped.
+        ↓
+  Tests pass? → flutter build apk --release
+        ↓
+  APK uploaded to Firebase App Distribution (Staging)
+        ↓
+  QA team tests on real devices
+        ↓
+  Manual approval
+        ↓
+  flutter build appbundle → Play Store Internal Track
+```
+
+### Admin Portal Pipeline (Next.js)
+
+```
+Code push to GitHub
+        ↓
+npm run lint
+npm run test
+npm run build
+        ↓
+  Build fail? → Stopped.
+        ↓
+  Build pass? → Docker image built
+        ↓
+  Deploy to Staging
+        ↓
+  Manual approval
+        ↓
+  Deploy to Production
+```
+
+---
+
+## Docker Setup
+
+### Why Docker
+
+- Developer ka laptop aur production server bilkul same environment mein chalte hain
+- New developer join kare — ek command se poora project chalu
+- Rollback easy — purani Docker image wapas deploy karo
+- Isolation — backend, database, redis sab alag containers mein
+
+### docker-compose.yml (Development)
+
+```yaml
+version: '3.8'
+
+services:
+  api:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/gmc_dev
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app
+
+  db:
+    image: postgres:16
+    environment:
+      - POSTGRES_DB=gmc_dev
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  admin:
+    build: ./admin-portal
+    ports:
+      - "3001:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+
+volumes:
+  postgres_data:
+```
+
+---
+
+## AWS Infrastructure
+
+### Architecture Diagram (Text)
+
+```
+Internet
+    ↓
+AWS CloudFront (CDN)
+    ↓
+Application Load Balancer
+    ↓          ↓
+API Server 1   API Server 2   (Auto Scaling Group)
+    ↓
+AWS RDS PostgreSQL (Primary)
+    ↓
+AWS RDS PostgreSQL (Read Replica) — Reports ke liye
+    ↓
+AWS ElastiCache Redis
+    ↓
+AWS S3 (Files — PDFs, Images)
+```
+
+### Why Two API Servers
+
+- Ek server down ho — doosra handle karta hai
+- Exam day pe traffic zyada — auto scaling third server start karta hai
+- Load balancer traffic distribute karta hai
+
+### Auto Scaling Rules
+
+- CPU 70% se upar 5 minutes tak → naya server start karo
+- CPU 30% se neeche 10 minutes tak → extra server band karo
+- Minimum: 2 servers always running
+- Maximum: 10 servers (exam season ke liye)
+
+---
+
+## Database Strategy
+
+### PostgreSQL on AWS RDS
+
+- **Automated daily backup** — 7 days retained
+- **Monthly backup** — 12 months retained
+- **Point-in-time recovery** — kisi bhi minute pe restore kar sakte hain last 7 days mein
+- **Multi-AZ deployment** — ek availability zone down ho toh automatic failover 60 seconds mein
+- **Read replica** — GMC Admin reports read replica se run honge — primary database pe load nahi
+
+### Database Migration Strategy
+
+```
+NestJS TypeORM Migrations
+    ↓
+migration file create karo
+    ↓
+staging pe test karo
+    ↓
+production pe CI/CD ke through deploy hota hai
+    ↓
+rollback: previous migration run karo
+```
+
+**Rule: Kabhi bhi production database directly manually edit mat karo. Sab kuch migration ke through.**
+
+---
+
+## Flutter Distribution
+
+### Development Builds
+
+**Firebase App Distribution** use karo — Play Store se faster.
+- Developer build banata hai
+- Firebase pe upload karo
+- QA team ke phone pe automatic install
+- Feedback directly app ke through
+
+### Production Releases
+
+**Google Play Store** — Internal Track → Alpha → Beta → Production
+- Internal Track: QA team only
+- Alpha: 10-20 selected teachers aur students (pilot schools)
+- Beta: All pilot schools
+- Production: All schools
+
+**Versioning:**
+```
+Major.Minor.Patch
+1.0.0 → Launch
+1.0.1 → Bug fix
+1.1.0 → New feature
+2.0.0 → Major redesign
+```
+
+---
+
+## Monitoring & Alerts
+
+### What We Monitor
+
+| Metric | Alert Threshold | Who Gets Alerted |
+|---|---|---|
+| API server down | Immediately | Tech Lead + DevOps |
+| API response time > 3s | 5 minutes sustained | Tech Lead |
+| Error rate > 1% | 5 minutes sustained | Tech Lead |
+| Database CPU > 80% | 10 minutes | DevOps |
+| Storage > 80% full | — | DevOps |
+| SMS delivery rate < 90% | Daily check | PM |
+| Failed sync count spike | — | Tech Lead |
+
+### Grafana Dashboards
+
+**Dashboard 1 — System Health**
+- API response times
+- Error rates
+- Server CPU and memory
+- Database connections
+
+**Dashboard 2 — Business Metrics**
+- Active users right now
+- Attendance submissions today
+- SMS delivery rate
+- Files uploaded today
+
+**Dashboard 3 — Offline Sync**
+- Pending sync queue size
+- Sync failures
+- Average sync time
+
+### Sentry — Error Tracking
+
+Flutter apps mein Sentry SDK add karo.
+
+- App crash hone pe automatically report Sentry pe jaata hai
+- Device info, Android version, stack trace sab milta hai
+- Duplicate errors group hote hain — ek issue ek baar dikhta hai
+- Priority ke hisaab se fix karo — sabse zyada users affect karne wale pehle
+
+---
+
+## Security in DevOps
+
+**Secrets Management**
+- API keys, database passwords — GitHub Secrets mein rakho
+- Code mein kabhi nahi — `.env` bhi `.gitignore` mein hona chahiye
+- AWS Secrets Manager production pe
+
+**Dependency Scanning**
+- `npm audit` aur `dart pub outdated` CI mein run hota hai
+- Vulnerable packages pe alert aata hai before deploy
+
+**Container Scanning**
+- Docker images vulnerability scan hoti hain CI mein
+- Critical vulnerability ho toh deploy block hota hai
+
+**Access Control**
+- Production AWS access — sirf Tech Lead aur DevOps ko
+- Developers staging tak access
+- All AWS actions CloudTrail mein logged
+
+---
+
+## Backup & Disaster Recovery
+
+### Backup Schedule
+
+| Data | Frequency | Retention | Location |
+|---|---|---|---|
+| PostgreSQL | Daily automated | 30 days | AWS S3 different region |
+| PostgreSQL | Monthly | 12 months | AWS S3 different region |
+| S3 files (PDFs) | Versioning enabled | Indefinite | AWS S3 |
+| Redis | Not backed up | — | Reconstructed from DB |
+
+### Recovery Time Objectives
+
+| Scenario | Target Recovery Time |
+|---|---|
+| API server crash | Under 2 minutes (auto scaling) |
+| Database failure | Under 5 minutes (RDS Multi-AZ failover) |
+| Full region outage | Under 4 hours (restore from backup) |
+| Accidental data deletion | Under 1 hour (point-in-time restore) |
+
+### Disaster Recovery Steps
+
+```
+1. Alert received — Tech Lead notified
+2. Assess — what failed, how much data affected
+3. Communicate — GMC informed within 30 minutes
+4. Restore — RDS point-in-time recovery
+5. Verify — data integrity check
+6. Resume — traffic switched back
+7. Post-mortem — what happened, how to prevent
+```
+
+---
+
+## Deployment Checklist
+
+Before every production deployment:
+
+- [ ] All tests passing on CI
+- [ ] Staging deployment tested by QA
+- [ ] Database migration tested on staging data
+- [ ] Tech Lead approval in GitHub PR
+- [ ] Deployment during off-hours — after 6 PM or weekend
+- [ ] Rollback plan documented
+- [ ] Team on standby for 1 hour post-deployment
+- [ ] Monitoring dashboards open during deployment
+
+---
+
+## Onboarding a New Developer
+
+New developer joins — ye steps mein poora local setup:
+
+```bash
+# 1. Clone repo
+git clone https://github.com/gmc/education-portal
+
+# 2. Install Docker Desktop
+
+# 3. Start all services
+docker-compose up
+
+# 4. Run migrations
+docker-compose exec api npm run migration:run
+
+# 5. Seed test data
+docker-compose exec api npm run seed
+
+# 6. Open apps
+# API: http://localhost:3000
+# Admin Portal: http://localhost:3001
+# API Docs: http://localhost:3000/api
+```
+
+Total setup time target: Under 30 minutes.
+
+---
+
+*DevOps is not optional. Every shortcut here becomes a production incident later. Follow the process every time — no exceptions for "small" changes.*

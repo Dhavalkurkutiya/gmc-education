@@ -1,0 +1,337 @@
+# GMC Education Portal — Flutter Packages
+
+**Version:** 1.0
+**Last Updated:** May 2026
+**Owner:** GMC Product Team
+**Source:** pub.dev (all packages verified)
+
+---
+
+## Overview
+
+Ye document GMC Education Portal ke teeno Flutter apps ke liye required packages define karta hai.
+
+- App 1 — Student & Parent (Android)
+- App 2 — Teacher & Principal (Android + Web)
+- App 3 — GMC Admin Web (Next.js — Flutter nahi)
+
+---
+
+## pubspec.yaml — Full Dependencies
+
+```yaml
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- Offline & Local Storage ---
+  drift: ^2.18.0
+  drift_flutter: ^0.2.0
+  sqlite3_flutter_libs: ^0.5.18
+  flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.3.2
+
+  # --- Networking ---
+  dio: ^5.7.0
+  connectivity_plus: ^6.1.0
+
+  # --- Push Notifications ---
+  firebase_core: ^3.6.0
+  firebase_messaging: ^15.1.3
+  flutter_local_notifications: ^18.0.1
+
+  # --- State Management ---
+  flutter_bloc: ^8.1.6
+  get_it: ^8.0.2
+
+  # --- File & PDF ---
+  file_picker: ^8.1.2
+  syncfusion_flutter_pdfviewer: ^27.1.48
+  path_provider: ^2.1.4
+  image_picker: ^1.1.2
+  image_cropper: ^8.0.2
+
+  # --- Auth & Security ---
+  jwt_decoder: ^2.0.1
+  local_auth: ^2.3.0
+  crypto: ^3.0.5
+
+  # --- UI & Language ---
+  easy_localization: ^3.0.7
+  intl: ^0.19.0
+  cached_network_image: ^3.4.1
+  go_router: ^14.3.0
+  shimmer: ^3.0.0
+  lottie: ^3.1.2
+
+  # --- Device & Permissions ---
+  permission_handler: ^11.3.1
+  device_info_plus: ^11.1.0
+
+  # --- Utilities ---
+  flutter_dotenv: ^5.2.1
+  uuid: ^4.5.1
+  equatable: ^2.0.5
+  dartz: ^0.10.1
+  logger: ^2.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  drift_dev: ^2.18.0
+  build_runner: ^2.4.12
+  flutter_lints: ^4.0.0
+  mockito: ^5.4.4
+  bloc_test: ^9.1.7
+```
+
+---
+
+## Package Details — Kya Karta Hai Aur Kyun
+
+---
+
+### Offline & Local Storage
+
+---
+
+**`drift` + `drift_flutter`**
+- **Kya karta hai:** Flutter ka best SQLite ORM. Type-safe queries, compile-time error detection, reactive streams.
+- **Kyun use kiya:** Attendance drafts offline store karo. Assignment submission queue. Downloaded material metadata. Cached timetables. Low-end Android pe fast.
+- **pub.dev:** pub.dev/packages/drift
+
+**`sqlite3_flutter_libs`**
+- **Kya karta hai:** SQLite native libraries Android pe bundle karta hai.
+- **Kyun use kiya:** Drift ke saath required dependency. Bina iske drift Android pe nahi chalta.
+- **pub.dev:** pub.dev/packages/sqlite3_flutter_libs
+
+**`flutter_secure_storage`**
+- **Kya karta hai:** Sensitive data securely store karta hai. Android pe RSA OAEP + AES-GCM encryption. Keystore use karta hai.
+- **Kyun use kiya:** JWT access token aur refresh token secure rakho. Plain SharedPreferences mein tokens store nahi karte — easily readable hote hain.
+- **pub.dev:** pub.dev/packages/flutter_secure_storage
+
+**`shared_preferences`**
+- **Kya karta hai:** Simple key-value local storage.
+- **Kyun use kiya:** Non-sensitive settings store karo — selected language, last sync timestamp, onboarding completed flag.
+- **pub.dev:** pub.dev/packages/shared_preferences
+
+---
+
+### Networking
+
+---
+
+**`dio`**
+- **Kya karta hai:** Powerful HTTP client. Interceptors, retry logic, file upload with progress, request cancellation, timeout handling.
+- **Kyun use kiya:** Standard http package se better. Interceptor mein JWT token automatically attach hoga har request pe. Upload progress bar ke liye. Retry on network failure.
+- **pub.dev:** pub.dev/packages/dio
+
+**`connectivity_plus`**
+- **Kya karta hai:** Internet connectivity real-time detect karta hai — WiFi, mobile data, none.
+- **Kyun use kiya:** Internet wapas aane pe auto-sync trigger karo. Offline mode seamlessly switch karo. User ko sync status dikhao.
+- **pub.dev:** pub.dev/packages/connectivity_plus
+
+---
+
+### Push Notifications
+
+---
+
+**`firebase_messaging`**
+- **Kya karta hai:** Firebase Cloud Messaging ka official Flutter plugin. Android pe background aur foreground notifications.
+- **Kyun use kiya:** Teacher notes upload kare — student ko notification. Assignment deadline reminder. Grade published alert. Free aur most reliable on Android.
+- **pub.dev:** pub.dev/packages/firebase_messaging
+
+**`flutter_local_notifications`**
+- **Kya karta hai:** Device pe local notifications schedule karo — bina internet ke.
+- **Kyun use kiya:** Assignment deadline reminder — 7 PM previous evening. Internet nahi hai toh bhi reminder milega. Scheduled local notifications internet pe depend nahi karte.
+- **pub.dev:** pub.dev/packages/flutter_local_notifications
+
+---
+
+### State Management
+
+---
+
+**`flutter_bloc`**
+- **Kya karta hai:** BLoC (Business Logic Component) pattern. UI aur business logic alag karo. Events, states, cubits.
+- **Kyun use kiya:** Large government project — 3 saal baad maintain karna ho toh clean architecture zaroori hai. BLoC predictable state changes deta hai. Testing easy hoti hai. flutter_bloc India ke enterprise projects mein standard hai.
+- **pub.dev:** pub.dev/packages/flutter_bloc
+
+**`get_it`**
+- **Kya karta hai:** Service locator — dependency injection without context.
+- **Kyun use kiya:** DioClient, AuthService, DatabaseService — sab ek jagah register karo. Kahi se bhi access karo bina context passing ke. Testing mein mock services inject karo.
+- **pub.dev:** pub.dev/packages/get_it
+
+---
+
+### File & PDF
+
+---
+
+**`file_picker`**
+- **Kya karta hai:** Phone storage se file select karo — PDF, image, any type.
+- **Kyun use kiya:** Teacher PDF notes upload kare. Supports Android file system properly. Multiple file selection bhi possible.
+- **pub.dev:** pub.dev/packages/file_picker
+
+**`syncfusion_flutter_pdfviewer`**
+- **Kya karta hai:** In-app PDF viewer. Pinch to zoom, page navigation, text search.
+- **Kyun use kiya:** Student PDF notes app ke andar hi khole — bina Google Drive ya external app ke. Offline downloaded PDFs bhi open hoti hain. Best PDF viewer available on pub.dev.
+- **pub.dev:** pub.dev/packages/syncfusion_flutter_pdfviewer
+- **Note:** Free for community use. License required for commercial — GMC confirm kare.
+
+**`path_provider`**
+- **Kya karta hai:** Device storage ka correct path deta hai — documents, cache, temp.
+- **Kyun use kiya:** Downloaded PDFs kahan save karein — path_provider se correct Android path milta hai. Drift database location ke liye bhi required.
+- **pub.dev:** pub.dev/packages/path_provider
+
+**`image_picker`**
+- **Kya karta hai:** Camera se photo lo ya gallery se image select karo.
+- **Kyun use kiya:** Student assignment submission — handwritten work ki photo kheeche aur upload kare.
+- **pub.dev:** pub.dev/packages/image_picker
+
+**`image_cropper`**
+- **Kya karta hai:** Selected image crop karo before upload.
+- **Kyun use kiya:** Student photo kheeche — crop karke sirf relevant part upload kare. File size kam hoti hai. Server storage bachta hai.
+- **pub.dev:** pub.dev/packages/image_cropper
+
+---
+
+### Auth & Security
+
+---
+
+**`jwt_decoder`**
+- **Kya karta hai:** JWT token decode karo — expiry time, user ID, role extract karo.
+- **Kyun use kiya:** Token expiry check karo bina server call ke. Expired token hai toh pehle refresh karo, phir API call karo. Role information token se nikalo.
+- **pub.dev:** pub.dev/packages/jwt_decoder
+
+**`local_auth`**
+- **Kya karta hai:** Fingerprint aur face unlock support.
+- **Kyun use kiya:** Phase 2 mein teacher quick login ke liye. Abhi include karo taaki future mein add karna easy ho.
+- **pub.dev:** pub.dev/packages/local_auth
+
+**`crypto`**
+- **Kya karta hai:** SHA, MD5, HMAC hashing.
+- **Kyun use kiya:** File integrity check — downloaded PDF tamper nahi hua. Checksum verify karo.
+- **pub.dev:** pub.dev/packages/crypto
+
+---
+
+### UI & Language
+
+---
+
+**`easy_localization`**
+- **Kya karta hai:** Multi-language support. JSON files mein translations. Runtime language switch.
+- **Kyun use kiya:** Gujarati default, Hindi aur English optional. Ek package se sab handle. Simple key-based translation system.
+- **pub.dev:** pub.dev/packages/easy_localization
+
+**`intl`**
+- **Kya karta hai:** Date, time, number formatting locale-aware.
+- **Kyun use kiya:** Dates Indian format mein dikhao — "15 May 2026". Gujarati locale support. easy_localization ka dependency bhi hai.
+- **pub.dev:** pub.dev/packages/intl
+
+**`cached_network_image`**
+- **Kya karta hai:** Network images cache karo. Placeholder show karo while loading. Error widget on fail.
+- **Kyun use kiya:** School logo, teacher profile photo — baar baar download na ho. Slow internet pe bhi cached image instantly dikhe.
+- **pub.dev:** pub.dev/packages/cached_network_image
+
+**`go_router`**
+- **Kya karta hai:** Declarative routing. Deep links. Navigation guards.
+- **Kyun use kiya:** SMS mein link bhejo — directly assignment screen khule. Role-based navigation guards — student teacher screen pe na jaaye. Clean URL structure.
+- **pub.dev:** pub.dev/packages/go_router
+
+**`shimmer`**
+- **Kya karta hai:** Loading skeleton animation — grey shimmer effect while data loads.
+- **Kyun use kiya:** Slow internet pe blank screen ki jagah shimmer dikhao. Better user experience. Low-end phones pe loading feel fast lagta hai.
+- **pub.dev:** pub.dev/packages/shimmer
+
+**`lottie`**
+- **Kya karta hai:** After Effects animations Flutter mein play karo — JSON format.
+- **Kyun use kiya:** Empty state animations — "No assignments yet." Success animations — assignment submitted. Engaging UI bina heavy images ke.
+- **pub.dev:** pub.dev/packages/lottie
+
+---
+
+### Device & Permissions
+
+---
+
+**`permission_handler`**
+- **Kya karta hai:** Camera, storage, notification permissions request karo.
+- **Kyun use kiya:** Assignment photo upload ke liye camera permission. PDF save karne ke liye storage permission. Properly ask karo — Android 13+ ke liye granular permissions zaroori hain.
+- **pub.dev:** pub.dev/packages/permission_handler
+
+**`device_info_plus`**
+- **Kya karta hai:** Device information — Android version, model, manufacturer.
+- **Kyun use kiya:** Low-end device detect karo — Android 8 pe heavy animations disable karo. Bug reports mein device info attach karo. Analytics ke liye device distribution samjho.
+- **pub.dev:** pub.dev/packages/device_info_plus
+
+---
+
+### Utilities
+
+---
+
+**`flutter_dotenv`**
+- **Kya karta hai:** `.env` file se environment variables load karo.
+- **Kyun use kiya:** API base URL, Firebase config, MSG91 key — code mein hardcode mat karo. Dev aur production alag configs rakho.
+- **pub.dev:** pub.dev/packages/flutter_dotenv
+
+**`uuid`**
+- **Kya karta hai:** Unique IDs generate karo.
+- **Kyun use kiya:** Offline submission ko unique ID do before sync. Duplicate detection ke liye idempotency key.
+- **pub.dev:** pub.dev/packages/uuid
+
+**`equatable`**
+- **Kya karta hai:** Dart objects ka equality comparison easy karta hai.
+- **Kyun use kiya:** BLoC states compare karne ke liye zaroori. Bina iske BLoC rebuild unnecessary hoti hai.
+- **pub.dev:** pub.dev/packages/equatable
+
+**`dartz`**
+- **Kya karta hai:** Functional programming — Either type for error handling.
+- **Kyun use kiya:** API responses cleanly handle karo — Either<Failure, Success>. No try-catch spaghetti. Clean architecture pattern ke liye.
+- **pub.dev:** pub.dev/packages/dartz
+
+**`logger`**
+- **Kya karta hai:** Beautiful structured logging — debug, info, warning, error levels.
+- **Kyun use kiya:** Development mein sync issues debug karo. Production logs filter karo. Bina print() statements ke.
+- **pub.dev:** pub.dev/packages/logger
+
+---
+
+## Dev Dependencies
+
+**`drift_dev`** — Drift code generation. Database tables se Dart code auto-generate karta hai.
+
+**`build_runner`** — Code generation runner. `dart run build_runner build` se drift code generate hota hai.
+
+**`flutter_lints`** — Official Flutter lint rules. Code quality enforce karta hai.
+
+**`mockito`** — Unit testing mein mock objects banao. Services mock karo bina real API calls ke.
+
+**`bloc_test`** — BLoC specific testing utilities. Events fire karo, states verify karo.
+
+---
+
+## App-wise Package Usage
+
+| Package | App 1 Student+Parent | App 2 Teacher+Principal | App 3 Admin Web |
+|---|---|---|---|
+| drift | Yes | Yes | No (PostgreSQL direct) |
+| flutter_secure_storage | Yes | Yes | No |
+| dio | Yes | Yes | No (Next.js fetch) |
+| connectivity_plus | Yes | Yes | No |
+| firebase_messaging | Yes | Yes | No |
+| flutter_local_notifications | Yes | Yes | No |
+| flutter_bloc | Yes | Yes | No |
+| file_picker | No | Yes | No |
+| syncfusion_flutter_pdfviewer | Yes | Yes | No |
+| image_picker | Yes | No | No |
+| easy_localization | Yes | Yes | No |
+| permission_handler | Yes | Yes | No |
+
+---
+
+*Har package add karne se pehle pub.dev pe like count, pub points (140/160+), aur last updated date verify karo. 2 saal se update nahi hua package use mat karo.*

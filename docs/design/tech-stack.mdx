@@ -1,0 +1,317 @@
+# GMC Education Portal — Tech Stack
+
+**Version:** 1.0
+**Last Updated:** May 2026
+**Owner:** GMC Product Team
+
+---
+
+## Overview
+
+This document defines the complete technology stack for the GMC Education Portal. Every technology choice is justified against the project's core constraints — low-end Android devices, unreliable internet, 50,000+ users, government data privacy, and limited development budget.
+
+---
+
+## Applications — What We Are Building
+
+Three separate applications share one backend.
+
+| App | Users | Platform |
+|---|---|---|
+| App 1 — Student & Parent App | Students + Parents | Android only |
+| App 2 — Teacher & Principal App | Teachers + Principals | Android + Web |
+| App 3 — GMC Admin Portal | GMC Officers | Web (Desktop) only |
+
+---
+
+## Frontend Stack
+
+---
+
+### App 1 & App 2 — Flutter
+
+**Technology:** Flutter 3.x (Dart)
+**Platforms:** Android (App 1 and App 2), Web (App 2 only)
+
+**Why Flutter:**
+
+- DIKSHA — India's national education platform — runs on Flutter. Proven at government scale in India.
+- Performs smoothly on low-end Android devices — 2GB RAM, Android 8 and above.
+- Offline-first architecture is native to Flutter. SQLite integration via Drift library is mature and production-ready.
+- Gujarati font rendering is excellent. No extra configuration needed.
+- One codebase covers Android and web — same team handles both, lower cost.
+- App size can be kept under 20MB — critical for students with limited storage.
+- Flutter Web covers Principal's desktop dashboard without a separate project.
+
+**Why not React Native:**
+- Higher memory usage on low-end devices.
+- Offline sync handling is less reliable than Flutter.
+- Performance tuning on cheap phones requires significantly more effort.
+
+**Why not PWA (Progressive Web App):**
+- Push notifications on Android via PWA are unreliable.
+- Offline file storage is limited in browser — cannot store 500MB of PDFs.
+- This project's offline requirement is too critical for PWA limitations.
+
+---
+
+### App 3 — Next.js
+
+**Technology:** Next.js 14+ (React + TypeScript)
+**Platform:** Web browser — desktop
+
+**Why Next.js:**
+
+- Server-side rendering means the admin dashboard loads fast even on slower office connections — page arrives from server as ready HTML, not blank screen waiting for JavaScript.
+- Built-in API routes allow small utility endpoints (report export, announcement send) without a separate microservice.
+- File-based routing keeps the project structure clean — a new developer joining understands the codebase quickly.
+- TypeScript support catches errors at compile time — important for a long-lived government project.
+- React ecosystem has the largest library selection for data tables, charts, filters — all of which the admin portal needs heavily.
+- Next.js is the current industry standard for government and enterprise web portals in India.
+
+**Why not plain React:**
+- No server-side rendering — first load is slow.
+- No built-in routing — extra setup and maintenance.
+- No built-in API routes — requires separate backend for every small utility.
+
+**Why not Flutter Web for Admin:**
+- Flutter Web is good for simple dashboards but struggles with complex data tables, bulk CSV operations, and heavy filtering — all of which GMC Admin needs daily.
+- Next.js has far more mature libraries for these use cases.
+
+---
+
+## Backend Stack
+
+---
+
+### API Server — Node.js + NestJS
+
+**Technology:** Node.js 20 LTS + NestJS 10 (TypeScript)
+
+**Why Node.js:**
+
+- Asynchronous by design — handles thousands of concurrent requests without blocking. Critical on exam results day when 50,000 students and parents access the system simultaneously.
+- JavaScript and TypeScript — same language family as the Next.js admin portal. One developer can contribute to both without context switching.
+- Largest ecosystem of production-ready libraries in India — SMS (MSG91), push notifications (FCM), file storage (AWS S3), all have first-class Node.js SDKs.
+- Node.js developers are the most abundant and most affordable in Ahmedabad and Gujarat.
+- Proven at scale — LinkedIn, Swiggy, Zomato all run Node.js backends.
+
+**Why NestJS over plain Express:**
+- Plain Express has no enforced structure — large projects become unmaintainable.
+- NestJS enforces modules, controllers, services, and dependency injection — code stays organized across a 3-year project lifecycle.
+- Built-in validation, authentication guards, and interceptors reduce boilerplate.
+- TypeScript first — type safety across the entire backend.
+- A new developer joining in year 2 can navigate the codebase without hand-holding.
+
+**Why not ASP.NET Core (C#):**
+- C# developers are scarce in Gujarat and significantly more expensive.
+- Development speed is slower — more boilerplate, more configuration.
+- The team already uses JavaScript for Next.js — adding C# creates a separate skill silo.
+- Technically excellent but the team cost outweighs the performance benefit for this project scale.
+
+**Why not Django (Python):**
+- Django is synchronous by default — concurrency requires additional setup (Celery, Channels).
+- Python developers in Gujarat are less common than Node.js developers for backend roles.
+- Good choice if AI features become a priority in Phase 3 — can be revisited then.
+
+**Why not Spring Boot (Java):**
+- Extremely verbose — development speed is slow.
+- Java developers are expensive.
+- Memory footprint is heavy — higher server cost.
+- Overkill for this project's scope and timeline.
+
+---
+
+## Database Stack
+
+---
+
+### Primary Database — PostgreSQL
+
+**Technology:** PostgreSQL 16
+
+**Why PostgreSQL:**
+
+- Relational data model perfectly fits this project — students belong to classes, classes belong to schools, marks belong to students and exams. These relationships are natural in SQL.
+- ACID compliant — every attendance record, every mark entry is guaranteed to be saved completely or not at all. No partial writes. Critical for government data.
+- Complex report queries — joining students, attendance, marks, schools across 100 schools — are fast and straightforward in PostgreSQL.
+- Free and open source — no licensing cost. Important for government budget.
+- Proven in Indian government projects at scale.
+- Strong support for audit trails — row-level logging, triggers, and history tables.
+
+**Why not MongoDB:**
+- Relational data in a document database creates complex application-level joins.
+- Report generation becomes extremely difficult — aggregating marks across schools requires complex pipelines.
+- No ACID guarantees by default — risky for official government records.
+- Overkill flexibility — this project's data model is well-defined and will not change drastically.
+
+---
+
+### Cache — Redis
+
+**Technology:** Redis 7
+
+**Why Redis:**
+
+- Exam results, timetables, and school announcements are read thousands of times but change rarely. Cache these in Redis — database gets no load during peak traffic.
+- Session token storage — fast lookup on every authenticated request.
+- SMS queue and notification queue — Redis pub/sub handles background job coordination.
+- Rate limiting — track login attempts, OTP requests per number, API calls per user.
+
+---
+
+### Offline Database — SQLite via Drift
+
+**Technology:** Drift (Flutter SQLite ORM)
+
+**Why Drift:**
+
+- Flutter's best offline database library — type-safe queries, migration support, reactive streams.
+- Stores structured data locally — attendance drafts, downloaded material metadata, assignment submissions queue, cached timetables.
+- Sync conflict resolution patterns well-documented for Drift.
+- Works on Android 8 and above — no compatibility issues.
+
+---
+
+## File Storage
+
+**Technology:** AWS S3 (Mumbai Region) or NIC Object Storage
+
+**Why object storage (not database):**
+- PDFs and images should never be stored in a database — they bloat it and slow every query.
+- Store file in S3, store the URL in PostgreSQL. Clean separation.
+
+**Why AWS S3 Mumbai:**
+- Data stays in India — DPDP Act 2023 compliance.
+- 99.99% durability — uploaded materials never lost.
+- Cheap at scale — pay only for what is stored.
+- Signed URLs — files accessible only to authenticated users, never publicly browsable.
+
+**NIC Object Storage alternative:**
+- If GMC mandates government infrastructure — NIC Cloud provides S3-compatible object storage.
+- Same architecture works with NIC — just change the endpoint URL.
+- Recommended if GMC has an existing NIC Cloud contract.
+
+---
+
+## Notifications
+
+---
+
+### SMS — MSG91
+
+**Why MSG91:**
+- Indian SMS gateway — best delivery rates in Gujarat.
+- Handles DND (Do Not Disturb) registry compliance automatically — required by TRAI.
+- Gujarati Unicode SMS support.
+- Delivery reports available — we can track which parent received the absence alert.
+- Competitive pricing for bulk government volumes.
+- Used by major Indian government and fintech projects.
+
+**Backup gateway:** Gupshup — same capabilities, use as failover if MSG91 has outage.
+
+---
+
+### Push Notifications — Firebase Cloud Messaging (FCM)
+
+**Why FCM:**
+- Google's official push notification service for Android — most reliable on all Android versions.
+- Free — no cost per notification.
+- Flutter has first-class FCM integration — setup is straightforward.
+- Works on Android 8 and above — covers all target devices.
+- Background delivery even when app is closed.
+
+---
+
+## Authentication
+
+**JWT (JSON Web Tokens) + Refresh Tokens**
+
+- Access token: short-lived (1 hour) — limits damage if stolen.
+- Refresh token: long-lived (7 days for students, 24 hours for teachers) — seamless re-authentication without asking user to log in again.
+- Stored in secure storage on device — not in browser localStorage.
+
+**OTP via SMS** — Parent login only. No password to remember.
+
+**bcrypt** — Password hashing for teacher and principal accounts. Industry standard, one-way hash.
+
+**2FA** — Mandatory for GMC Admin accounts. OTP on every login regardless of device.
+
+---
+
+## Infrastructure & Hosting
+
+**Primary:** AWS Mumbai Region (ap-south-1)
+
+**Why AWS Mumbai:**
+- Servers physically in India — DPDP Act 2023 compliance.
+- Low latency for Gujarat — under 20ms from Ahmedabad.
+- 99.9% uptime SLA — meets government reliability requirement.
+- Auto-scaling — handle 10x traffic during exam season without manual intervention.
+- Managed services — RDS for PostgreSQL, ElastiCache for Redis — less operational overhead.
+
+**Alternative:** NIC Cloud
+- If GMC mandates Indian government infrastructure.
+- Data sovereignty fully guaranteed.
+- May have slower support and fewer managed services.
+- Architecture remains identical — only hosting provider changes.
+
+**Recommended setup:**
+- 2 application servers behind a load balancer
+- 1 managed PostgreSQL instance with daily automated backups
+- 1 Redis instance
+- S3 bucket with versioning enabled
+- CloudFront CDN for static assets
+
+---
+
+## DevOps
+
+**Docker** — Containerise all services. Same environment on developer laptop and production server. No "works on my machine" issues.
+
+**GitHub Actions** — CI/CD pipeline. On every code push: run tests automatically, build Docker image, deploy to staging. One-click deploy to production.
+
+**Staging environment** — Separate from production. All changes tested on staging first. Never deploy untested code to production.
+
+**Monitoring** — AWS CloudWatch or Grafana. Alert on: server down, error rate above 1%, response time above 3 seconds, disk above 80%.
+
+**Backups** — PostgreSQL automated daily backup. Retained 30 days. Monthly backup retained 1 year. Tested restore every quarter.
+
+---
+
+## Complete Stack Summary
+
+```
+Mobile Apps 1 & 2   →  Flutter 3.x (Dart) — Android + Web
+Admin Portal        →  Next.js 14 (React + TypeScript) — Web
+Backend API         →  Node.js 20 + NestJS 10 (TypeScript)
+Primary Database    →  PostgreSQL 16
+Cache               →  Redis 7
+Offline Database    →  SQLite via Drift (Flutter)
+File Storage        →  AWS S3 Mumbai / NIC Object Storage
+SMS Gateway         →  MSG91 (backup: Gupshup)
+Push Notifications  →  Firebase Cloud Messaging (FCM)
+Authentication      →  JWT + Refresh Tokens + bcrypt + OTP
+Hosting             →  AWS Mumbai ap-south-1 / NIC Cloud
+CI/CD               →  Docker + GitHub Actions
+Monitoring          →  AWS CloudWatch / Grafana
+```
+
+---
+
+## Technology Decision Log
+
+All major technology decisions are recorded here. If anyone questions a choice in the future, this log provides the reasoning at the time of decision.
+
+| Decision | Options Considered | Chosen | Reason |
+|---|---|---|---|
+| Mobile framework | Flutter, React Native, PWA | Flutter | Best offline support, low-end device performance, DIKSHA precedent |
+| Admin portal | Next.js, Flutter Web, plain React | Next.js | SSR performance, complex data tables, larger ecosystem |
+| Backend | Node.js+NestJS, ASP.NET, Django, Spring Boot | Node.js+NestJS | Developer availability in Gujarat, JS across stack, async concurrency |
+| Database | PostgreSQL, MongoDB | PostgreSQL | Relational data model, ACID compliance, report query performance |
+| SMS | MSG91, Gupshup, Twilio | MSG91 | Indian gateway, DND compliance, Gujarati Unicode, cost |
+| Hosting | AWS Mumbai, NIC Cloud | AWS Mumbai (primary) | Reliability, managed services, auto-scaling — NIC as alternative |
+
+---
+
+*This document must be reviewed and re-approved if any technology is changed. All changes require Tech Lead and PM sign-off.*
